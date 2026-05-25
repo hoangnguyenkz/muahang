@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theo Dõi Báo Giá Thiết Bị</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #f0f2f5;
+  --sidebar-bg: #0f1923;
+  --sidebar-accent: #1a2940;
+  --sidebar-active: #1e6bdc;
+  --sidebar-text: #8fa3b8;
+  --sidebar-text-active: #ffffff;
+  --card: #ffffff;
+  --card2: #f7f9fc;
+  --border: #e4e9f0;
+  --text: #0f1923;
+  --text2: #5a6a7e;
+  --text3: #a0aec0;
+  --primary: #1e6bdc;
+  --primary-light: #e8f1fd;
+  --primary-dark: #1557c0;
+  --success: #0fa968;
+  --success-light: #e6f7f0;
+  --warning: #e8940a;
+  --warning-light: #fef5e4;
+  --danger: #e03e3e;
+  --danger-light: #fdecea;
+  --info: #6c63ff;
+  --info-light: #f0effe;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Be Vietnam Pro', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; font-size: 14px; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100%; display: flex; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 240px; min-width: 240px; background: var(--sidebar-bg);
+  display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+  transition: var(--transition); z-index: 200;
+}
+.sidebar-logo {
+  padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 34px; height: 34px; background: var(--primary); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0;
+}
+.logo-text { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.3; }
+.logo-sub { font-size: 10px; color: var(--sidebar-text); font-weight: 400; }
+
+.sidebar-section { padding: 16px 12px 4px; font-size: 10px; font-weight: 600; color: var(--sidebar-text); letter-spacing: 1px; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin: 1px 8px; border-radius: var(--radius-sm);
+  color: var(--sidebar-text); cursor: pointer; font-size: 13px; font-weight: 500;
+  transition: var(--transition); user-select: none;
+}
+.nav-item i { width: 18px; text-align: center; font-size: 14px; }
+.nav-item:hover { background: var(--sidebar-accent); color: #fff; }
+.nav-item.active { background: var(--sidebar-active); color: var(--sidebar-text-active); }
+.nav-badge {
+  margin-left: auto; background: var(--danger); color: #fff;
+  border-radius: 10px; font-size: 10px; font-weight: 700;
+  padding: 1px 7px; min-width: 18px; text-align: center;
+}
+.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+.sidebar-footer .version { font-size: 10px; color: var(--sidebar-text); text-align: center; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 58px; display: flex; align-items: center;
+  gap: 12px; flex-shrink: 0; box-shadow: 0 1px 0 var(--border);
+}
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.topbar-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px;
+  font-weight: 500; font-family: var(--sans); cursor: pointer;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); transition: var(--transition); white-space: nowrap;
+}
+.btn:hover { background: var(--card2); border-color: #c8d4e3; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+.btn-success:hover { opacity: 0.88; }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; }
+
+/* ── Metric Cards ── */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.metric-card {
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 16px; display: flex; flex-direction: column; gap: 6px;
+  transition: var(--transition);
+}
+.metric-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.metric-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 4px; }
+.metric-label { font-size: 11px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-val { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; }
+.metric-sub { font-size: 11px; color: var(--text3); }
+
+/* ── Toolbar ── */
+.toolbar {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+}
+.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; }
+.search-wrap input { padding-left: 32px; width: 100%; }
+input, select, textarea {
+  font-family: var(--sans); font-size: 13px; color: var(--text);
+  background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 10px; outline: none; transition: var(--transition); width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(30,107,220,0.08); }
+textarea { resize: vertical; min-height: 72px; }
+select { cursor: pointer; }
+.toolbar select { min-width: 130px; width: auto; }
+
+/* ── Table ── */
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.table-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.table-count { font-size: 13px; color: var(--text2); }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1400px; }
+thead th {
+  background: var(--card2); padding: 10px 12px; text-align: left;
+  font-weight: 600; font-size: 11px; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
+}
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--primary); }
+th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 10px; }
+th.sorted .sort-icon { opacity: 1; color: var(--primary); }
+tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f5f8ff; }
+tbody tr.best-row td { background: rgba(15,169,104,0.03); }
+
+/* ── Badges ── */
+.badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-danger { background: var(--danger-light); color: var(--danger); }
+.badge-info { background: var(--info-light); color: var(--info); }
+.badge-gray { background: #f0f2f5; color: var(--text2); }
+.badge-primary { background: var(--primary-light); color: var(--primary); }
+
+/* ── Supplier chip ── */
+.sup-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+
+/* ── Price diff ── */
+.price-best { font-size: 10px; color: var(--success); font-weight: 600; }
+.price-up { font-size: 10px; color: var(--danger); }
+.price-down { font-size: 10px; color: var(--success); }
+.mono { font-family: var(--mono); }
+
+/* ── Action buttons ── */
+.row-actions { display: flex; gap: 4px; }
+.act-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid transparent;
+  background: none; cursor: pointer; color: var(--text3); font-size: 13px;
+  display: flex; align-items: center; justify-content: center; transition: var(--transition);
+}
+.act-btn:hover.edit { background: var(--primary-light); color: var(--primary); border-color: #c0d8f9; }
+.act-btn:hover.del { background: var(--danger-light); color: var(--danger); border-color: #f5c0c0; }
+.act-btn:hover.view { background: var(--info-light); color: var(--info); border-color: #d0ccff; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+.empty-state i { font-size: 48px; color: var(--text3); margin-bottom: 16px; display: block; }
+.empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+
+/* ── Modal ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(10,20,40,0.5);
+  z-index: 1000; display: none; align-items: flex-start; justify-content: center;
+  padding: 40px 16px; overflow-y: auto; backdrop-filter: blur(2px);
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border);
+  width: 100%; max-width: 760px; box-shadow: var(--shadow-lg);
+  animation: fadeUp 0.2s ease; margin: auto;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.modal-header {
+  padding: 20px 24px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.close-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px; border-radius: 6px; line-height: 1; }
+.close-btn:hover { background: var(--card2); color: var(--text); }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-col-full { grid-column: 1 / -1; }
+.form-col-2 { grid-column: span 2; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.required-star { color: var(--danger); }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.section-divider { grid-column: 1 / -1; border-top: 1px dashed var(--border); margin: 4px 0; padding-top: 4px; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 8px; }
+.section-divider::after { content: ''; flex: 1; border-top: 1px dashed var(--border); }
+
+/* ── Tab ── */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab-btn {
+  padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; background: none; color: var(--text2); border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: var(--transition); display: flex; align-items: center; gap: 7px;
+}
+.tab-btn:hover { color: var(--primary); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+/* ── Charts ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.chart-card-full { grid-column: 1 / -1; }
+.chart-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.chart-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── Supplier cards ── */
+.supplier-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.supplier-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.supplier-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.supplier-avatar { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.supplier-name { font-weight: 700; font-size: 14px; }
+.supplier-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.supplier-total { margin-left: auto; text-align: right; }
+.supplier-total-val { font-size: 15px; font-weight: 700; }
+.supplier-total-lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+.mini-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+.mini-table th { color: var(--text3); font-weight: 600; padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+.mini-table td { padding: 5px 6px; border-bottom: 1px dashed var(--border); color: var(--text); vertical-align: middle; }
+.mini-table tr:last-child td { border-bottom: none; }
+
+/* ── Detail panel ── */
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.detail-item label { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+.detail-item .val { font-size: 13px; color: var(--text); font-weight: 500; }
+.detail-item .val.mono { font-size: 14px; }
+.detail-note { background: var(--card2); border-left: 3px solid var(--primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; font-size: 13px; color: var(--text2); margin-top: 14px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--text); color: #fff; border-radius: 10px;
+  padding: 12px 18px; font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg);
+  transform: translateY(80px); opacity: 0; transition: all 0.25s ease;
+  pointer-events: none; max-width: 340px;
+}
+.toast.show { transform: none; opacity: 1; }
+.toast i { font-size: 16px; }
+.toast.success i { color: #4ade80; }
+.toast.error i { color: #f87171; }
+
+/* ── Project filter tag ── */
+.project-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--info-light); color: var(--info); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c8d4e3; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+/* ── Responsive ── */
+@media(max-width: 900px) {
+  .sidebar { position: fixed; left: -240px; }
+  .sidebar.open { left: 0; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+@media(max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .content { padding: 14px; }
+}
+
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--card2); color: var(--text2); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><i class="fas fa-boxes-stacking"></i></div>
+    <div>
+      <div class="logo-text">PriceTrack Pro</div>
+      <div class="logo-sub">Quản lý báo giá thiết bị</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Danh mục chính</div>
+  <div class="nav-item active" onclick="switchView('all',this)"><i class="fas fa-table-list"></i> Tất cả báo giá</div>
+  <div class="nav-item" onclick="switchView('supplier',this)"><i class="fas fa-building"></i> Nhà cung cấp</div>
+  <div class="nav-item" onclick="switchView('project',this)"><i class="fas fa-diagram-project"></i> Theo dự án</div>
+  <div class="nav-item" onclick="switchView('chart',this)"><i class="fas fa-chart-bar"></i> Biểu đồ phân tích</div>
+
+  <div class="sidebar-section">Tiện ích</div>
+  <div class="nav-item" onclick="openImport()"><i class="fas fa-file-import"></i> Nhập Excel/CSV</div>
+  <div class="nav-item" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Xuất Excel</div>
+  <div class="nav-item" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Xuất CSV</div>
+
+  <div class="sidebar-footer">
+    <div class="version">PriceTrack Pro v2.0 · 2026</div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="btn btn-icon" onclick="toggleSidebar()" title="Menu" style="border:none;background:none;font-size:16px;color:var(--text2);display:none" id="menuBtn">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div>
+      <div class="topbar-title" id="topTitle">Tất cả báo giá</div>
+      <div class="topbar-sub" id="topSub">Quản lý và so sánh giá từ các nhà cung cấp</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="openImport()"><i class="fas fa-upload"></i> Nhập file</button>
+      <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> Thêm báo giá</button>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+    <div id="view-all">
+      <div class="metrics" id="metricsBar"></div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" placeholder="Tìm thiết bị, model, nhà cung cấp, dự án..." oninput="renderTable()">
+        </div>
+        <select id="fSupplier" onchange="renderTable()"><option value="">Tất cả NCC</option></select>
+        <select id="fProject" onchange="renderTable()"><option value="">Tất cả dự án</option></select>
+        <select id="fCat" onchange="renderTable()"><option value="">Tất cả danh mục</option></select>
+        <select id="fBrand" onchange="renderTable()"><option value="">Tất cả thương hiệu</option></select>
+        <select id="fStatus" onchange="renderTable()">
+          <option value="">Tất cả trạng thái</option>
+          <option value="Đã duyệt">Đã duyệt</option>
+          <option value="Chờ duyệt">Chờ duyệt</option>
+          <option value="Hết hạn">Hết hạn</option>
+          <option value="Mới">Mới</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-count" id="tableCount">0 mục</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="clearFilters()"><i class="fas fa-filter-circle-xmark"></i> Xoá lọc</button>
+            <button class="btn btn-sm" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+            <button class="btn btn-sm" onclick="exportCSV()"><i class="fas fa-download"></i> CSV</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px">#</th>
+                <th class="sortable" data-field="device" style="min-width:160px">Thiết bị <i class="fas fa-sort sort-icon"></i></th>
+                <th class="sortable" data-field="model" style="min-width:110px">Model <i class="fas fa-sort sort-icon"></i></th>
+                <th class="sortable" data-field="brand" style="min-width:100px">Thương hiệu <i class="fas fa-sort sort-icon"></i></th>
+                <th style="min-width:80px">Xuất xứ</th>
+                <th style="min-width:180px">Thông số kỹ thuật</th>
+                <th class="sortable" data-field="supplier" style="min-width:140px">Nhà cung cấp <i class="fas fa-sort sort-icon"></i></th>
+                <th style="min-width:80px">Danh mục</th>
+                <th style="min-width:110px">Dự án</th>
+                <th class="sortable" data-field="price" style="min-width:110px">Đơn giá <i class="fas fa-sort sort-icon"></i></th>
+                <th style="min-width:50px;text-align:right">SL</th>
+                <th class="sortable" data-field="total" style="min-width:120px">Thành tiền <i class="fas fa-sort sort-icon"></i></th>
+                <th style="min-width:90px">Trạng thái</th>
+                <th style="min-width:90px">Ngày báo</th>
+                <th style="min-width:85px">Hết hạn</th>
+                <th style="min-width:88px;text-align:center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <i class="fas fa-search"></i>
+          <h3>Không tìm thấy kết quả</h3>
+          <p>Thử thay đổi bộ lọc hoặc từ khoá tìm kiếm</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-supplier" style="display:none">
+      <div id="supplierView"></div>
+    </div>
+
+    <div id="view-project" style="display:none">
+      <div id="projectView"></div>
+    </div>
+
+    <div id="view-chart" style="display:none">
+      <div class="chart-grid">
+        <div class="chart-card chart-card-full">
+          <div class="chart-title">So sánh đơn giá theo thiết bị & nhà cung cấp</div>
+          <div class="chart-subtitle">Chỉ hiển thị các thiết bị có nhiều hơn 1 báo giá</div>
+          <div class="chart-legend" id="chartLegend"></div>
+          <div style="position:relative;height:320px"><canvas id="priceChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Tổng giá trị theo nhà cung cấp</div>
+          <div class="chart-subtitle">Đơn vị: triệu đồng</div>
+          <div style="position:relative;height:260px"><canvas id="supplierChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Phân bổ báo giá theo danh mục</div>
+          <div class="chart-subtitle">Số lượng mục theo danh mục</div>
+          <div style="position:relative;height:260px"><canvas id="catChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Tổng giá trị theo dự án</div>
+          <div class="chart-subtitle">Đơn vị: triệu đồng</div>
+          <div style="position:relative;height:260px"><canvas id="projectChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Phân bổ theo thương hiệu</div>
+          <div class="chart-subtitle">Số mục theo thương hiệu</div>
+          <div style="position:relative;height:260px"><canvas id="brandChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Thêm báo giá mới</div>
+        <div class="modal-sub">Điền đầy đủ thông tin để lưu báo giá</div>
+      </div>
+      <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="section-divider">Thông tin thiết bị</div>
+
+        <div class="form-group form-col-2">
+          <label>Tên thiết bị <span class="required-star">*</span></label>
+          <input type="text" id="fDevice" placeholder="VD: UPS Online 10KVA" list="deviceList">
+          <datalist id="deviceList"></datalist>
+        </div>
+        <div class="form-group">
+          <label>Model <span class="required-star">*</span></label>
+          <input type="text" id="fModel" placeholder="VD: SRT10KXLI">
+        </div>
+        <div class="form-group">
+          <label>Thương hiệu <span class="required-star">*</span></label>
+          <input type="text" id="fBrand" placeholder="VD: APC, Cisco, Dell..." list="brandList">
+          <datalist id="brandList"></datalist>
+        </div>
+        <div class="form-group">
+          <label>Xuất xứ</label>
+          <select id="fOrigin">
+            <option value="">-- Chọn --</option>
+            <option>Việt Nam</option>
+            <option>Mỹ</option>
+            <option>Nhật Bản</option>
+            <option>Hàn Quốc</option>
+            <option>Trung Quốc</option>
+            <option>Đức</option>
+            <option>Pháp</option>
+            <option>Singapore</option>
+            <option>Đài Loan</option>
+            <option>Thái Lan</option>
+            <option>Khác</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Danh mục</label>
+          <select id="fCatF">
+            <option>Điện</option><option>Mạng</option><option>Cơ khí</option>
+            <option>CNTT</option><option>An ninh</option><option>Cơ sở hạ tầng</option><option>Khác</option>
+          </select>
+        </div>
+        <div class="form-group form-col-full">
+          <label>Thông số kỹ thuật</label>
+          <textarea id="fSpec" placeholder="VD: 10KVA/10KW, 230VAC, 3 pha vào 1 pha ra, pin 12V7AH x 20, LCD display..."></textarea>
+        </div>
+
+        <div class="section-divider">Thông tin nhà cung cấp & dự án</div>
+
+        <div class="form-group form-col-2">
+          <label>Nhà cung cấp <span class="required-star">*</span></label>
+          <input type="text" id="fSupplier" placeholder="Tên công ty / nhà cung cấp" list="supplierList">
+          <datalist id="supplierList"></datalist>
+        </div>
+        <div class="form-group">
+          <label>Dự án</label>
+          <input type="text" id="fProject" placeholder="VD: Trụ sở HCM 2026" list="projectList">
+          <datalist id="projectList"></datalist>
+        </div>
+
+        <div class="section-divider">Thông tin giá</div>
+
+        <div class="form-group">
+          <label>Đơn giá (VNĐ) <span class="required-star">*</span></label>
+          <input type="number" id="fPrice" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Số lượng</label>
+          <input type="number" id="fQty" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label>VAT (%)</label>
+          <input type="number" id="fVat" value="10" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label>Ngày báo giá</label>
+          <input type="date" id="fDate">
+        </div>
+        <div class="form-group">
+          <label>Hết hạn báo giá</label>
+          <input type="date" id="fExpiry">
+        </div>
+        <div class="form-group">
+          <label>Trạng thái</label>
+          <select id="fStatus">
+            <option>Mới</option><option>Chờ duyệt</option><option>Đã duyệt</option><option>Hết hạn</option>
+          </select>
+        </div>
+        <div class="form-group form-col-full">
+          <label>Ghi chú</label>
+          <textarea id="fNote" placeholder="Điều kiện thanh toán, bảo hành, giao hàng..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn btn-primary" onclick="saveEntry()"><i class="fas fa-save"></i> Lưu báo giá</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detailTitle"></div>
+        <div class="modal-sub" id="detailSub"></div>
+      </div>
+      <button class="close-btn" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDetail()">Đóng</button>
+      <button class="btn btn-primary" id="detailEditBtn"><i class="fas fa-edit"></i> Sửa</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="importOverlay" onclick="if(event.target===this)closeImport()">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div><div class="modal-title">Nhập dữ liệu từ file</div><div class="modal-sub">Hỗ trợ Excel (.xlsx) và CSV (.csv)</div></div>
+      <button class="close-btn" onclick="closeImport()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--card2);border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;margin-bottom:14px;cursor:pointer" onclick="document.getElementById('fileInput').click()" id="dropZone">
+        <i class="fas fa-cloud-upload-alt" style="font-size:36px;color:var(--text3);margin-bottom:10px;display:block"></i>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Kéo thả file vào đây</div>
+        <div style="font-size:12px;color:var(--text2)">hoặc click để chọn file · .xlsx / .csv</div>
+        <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none" onchange="handleImport(event)">
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        <strong>Định dạng cột (thứ tự):</strong><br>
+        Thiết bị · Model · Thương hiệu · Xuất xứ · Thông số kỹ thuật · Nhà cung cấp · Danh mục · Dự án · Đơn giá · Số lượng · VAT · Ngày báo · Hết hạn · Trạng thái · Ghi chú
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeImport()">Đóng</button>
+      <button class="btn btn-success" onclick="downloadTemplate()"><i class="fas fa-download"></i> Tải file mẫu</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg"></span></div>
+
+<script>
+// ── Data ──
+let data = [
+  {id:1,device:'UPS Online 10KVA',model:'SRT10KXLI',brand:'APC',origin:'Mỹ',spec:'10KVA/10KW, 230VAC, 3 pha vào 1 pha ra, pin 12V 7AH x20, LCD display, RS232/USB',supplier:'Công ty TNHH Minh Khang',cat:'Điện',project:'Trụ sở HCM 2026',price:85000000,qty:2,vat:10,date:'2026-05-10',expiry:'2026-08-10',status:'Đã duyệt',note:'Giao hàng trong 4 tuần. Thanh toán 30/70.'},
+  {id:2,device:'UPS Online 10KVA',model:'9PX10KIRPM',brand:'Eaton',origin:'Pháp',spec:'10KVA/10KW, chỗ trống hot-swap bộ nguồn, LCD, hiệu suất 94%',supplier:'Điện Năng Toàn Cầu',cat:'Điện',project:'Trụ sở HCM 2026',price:92000000,qty:2,vat:10,date:'2026-05-12',expiry:'2026-07-12',status:'Chờ duyệt',note:'Sẵn hàng tại kho HCM'},
+  {id:3,device:'Switch 24-Port PoE',model:'C9200L-24P-4G-E',brand:'Cisco',origin:'Mỹ',spec:'24 ports 10/100/1000 PoE+ (370W), 4x 1G uplinks, Network Essentials',supplier:'NetViet Distribution',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:34500000,qty:5,vat:10,date:'2026-05-14',expiry:'2026-08-14',status:'Đã duyệt',note:'Giá gồm Smartnet 1 năm'},
+  {id:4,device:'Switch 24-Port PoE',model:'S5735-L24P4X-A1',brand:'Huawei',origin:'Trung Quốc',spec:'24 ports Gig PoE+, 4x 10G SFP+ uplinks, 370W PoE budget',supplier:'Giải Pháp Công Nghệ Sao Nam',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:21000000,qty:5,vat:10,date:'2026-05-15',expiry:'2026-08-15',status:'Mới',note:'Bảo hành 12 tháng tại hãng'},
+  {id:5,device:'Máy phát điện 250KVA',model:'C275D5',brand:'Cummins',origin:'Ấn Độ',spec:'Động cơ Cummins 6CTAA8.3-G2, đầu phát Stamford, bảng điều khiển PowerCommand 1.2',supplier:'Cơ điện Phú Phát',cat:'Điện',project:'Nhà máy Long An',price:680000000,qty:1,vat:10,date:'2026-05-01',expiry:'2026-06-01',status:'Đã duyệt',note:'Giá gồm vỏ chống ồn đồng bộ, tủ ATS 400A'},
+  {id:6,device:'Máy phát điện 250KVA',model:'MDS-275',brand:'Mitsubishi',origin:'Nhật Bản',spec:'Động cơ Mitsubishi, đầu phát Mecc Alte, lắp ráp Việt Nam',supplier:'Tổng kho Máy phát điện',cat:'Điện',project:'Nhà máy Long An',price:590000000,qty:1,vat:10,date:'2026-05-05',expiry:'2026-05-20',status:'Hết hạn',note:'Cần check lại giá thép tăng'},
+  {id:7,device:'Cáp mạng Cat6 UTP',model:'VOL-6UP4-24',brand:'CommScope',origin:'Mỹ',spec:'Cáp đồng Cat6 UTP, 4 cặp xoắn, 23 AWG, lõi chữ thập, thùng 305m màu xanh',supplier:'CableVN',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:2850000,qty:40,vat:10,date:'2026-05-11',expiry:'2026-09-11',status:'Đã duyệt',note:'Hàng sẵn, free ship nội thành'},
+  {id:8,device:'Máy chủ Rack 2U',model:'PowerEdge R740',brand:'Dell',origin:'Mỹ',spec:'2x Xeon Gold 6226R, 128GB RAM ECC, 4x 2.4TB SAS 10K, PERC H730P',supplier:'NetViet Distribution',cat:'CNTT',project:'Data Center HCM',price:179000000,qty:1,vat:10,date:'2026-05-14',expiry:'2026-08-14',status:'Đã duyệt',note:'Bảo hành 3 năm onsite next-business-day'},
+  {id:9,device:'Cáp quang OM4 LC-LC',model:'OM4-DUPLEX-LC-3M',brand:'CommScope',origin:'Mỹ',spec:'OM4 50/125, LC-LC Duplex, 3 mét, LSZH jacket, màu tím',supplier:'CableVN',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:350000,qty:50,vat:10,date:'2026-05-18',expiry:'2026-09-18',status:'Mới',note:''},
+  {id:10,device:'Điều hoà Cassette 4HP',model:'FCQ100KAVEA',brand:'Daikin',origin:'Thái Lan',spec:'4HP, 34.000 BTU, Inverter, 3 pha, R32, COP 3.7, điều khiển từ xa không dây',supplier:'Điện máy Sài Gòn',cat:'Điện',project:'Văn phòng tầng 5',price:42500000,qty:4,vat:10,date:'2026-05-20',expiry:'2026-08-20',status:'Chờ duyệt',note:'Lắp đặt tính phí riêng 2tr/máy'},
+  {id:11,device:'Firewall NGFW',model:'PA-850',brand:'Palo Alto',origin:'Mỹ',spec:'Throughput 2.1Gbps, 64000 sessions, App-ID, URL Filtering, WildFire sandbox',supplier:'CyberSec VN',cat:'Mạng',project:'Data Center HCM',price:285000000,qty:1,vat:10,date:'2026-05-22',expiry:'2026-08-22',status:'Chờ duyệt',note:'Gồm license 1 năm Threat Prevention'},
+  {id:12,device:'Tủ mạng Rack 42U',model:'NetShelter SX 42U',brand:'APC',origin:'Mỹ',spec:'42U, 600x1070mm, 1500kg load, broom broom, side panels, cửa kính phía trước',supplier:'Công ty TNHH Minh Khang',cat:'Cơ sở hạ tầng',project:'Data Center HCM',price:28500000,qty:2,vat:10,date:'2026-05-15',expiry:'2026-08-15',status:'Đã duyệt',note:''}
+];
+
+let nextId = 13;
+let editId = null;
+let currentView = 'all';
+let sortField = 'device';
+let sortAsc = true;
+let chartInsts = {};
+const today = new Date().toISOString().split('T')[0];
+
+const COLORS = ['#1e6bdc','#0fa968','#e8940a','#e03e3e','#6c63ff','#00ced1','#ff1493','#4b0082','#ffa500','#7fff00'];
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fDate').value = today;
+  refresh();
+  window.addEventListener('resize', () => {
+    const btn = document.getElementById('menuBtn');
+    if(window.innerWidth > 900) { document.getElementById('sidebar').classList.remove('open'); btn.style.display='none'; }
+    else { btn.style.display='inline-flex'; }
+  });
+  if(window.innerWidth <= 900) document.getElementById('menuBtn').style.display='inline-flex';
+});
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function refresh() { populateFilters(); renderMetrics(); renderTable(); }
+
+function switchView(view, btn) {
+  currentView = view;
+  if(btn) {
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  
+  const titles = {all:'Tất cả báo giá', supplier:'Báo giá theo nhà cung cấp', project:'Báo giá theo dự án', chart:'Biểu đồ phân tích'};
+  const subs = {
+    all:'Quản lý và so sánh giá từ các nhà cung cấp',
+    supplier:'Xem tổng quan năng lực và danh mục hàng hóa của từng NCC',
+    project:'Theo dõi ngân sách và thiết bị được phân bổ cho từng dự án',
+    chart:'Phân tích trực quan chênh lệch giá và phân bổ ngân sách'
+  };
+  
+  document.getElementById('topTitle').textContent = titles[view];
+  document.getElementById('topSub').textContent = subs[view];
+  
+  ['all','supplier','project','chart'].forEach(v => {
+    document.getElementById(`view-${v}`).style.display = v===view ? 'block' : 'none';
+  });
+  
+  if(view==='supplier') renderSupplierView();
+  if(view==='project') renderProjectView();
+  if(view==='chart') renderCharts();
+  if(window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+}
+
+// ── Filters & Populating ──
+function clearFilters() {
+  ['fSupplier','fProject','fCat','fBrand','fStatus'].forEach(id => document.getElementById(id).value = '');
+  renderTable();
+}
+
+function populateFilters() {
+  const uniq = (arr, key) => [...new Set(arr.map(r => r[key]).filter(Boolean))].sort();
+  const fill = (id, vals, label) => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${v===cur?' selected':''}>${v}</option>`).join('');
+  };
+  fill('fSupplier', uniq(data,'supplier'), 'Tất cả NCC');
+  fill('fProject', uniq(data,'project'), 'Tất cả dự án');
+  fill('fCat', uniq(data,'cat'), 'Tất cả danh mục');
+  fill('fBrand', uniq(data,'brand'), 'Tất cả thương hiệu');
+
+  // datalists
+  const dl = (id, vals) => { document.getElementById(id).innerHTML = vals.map(v=>`<option value="${v}">`).join(''); };
+  dl('supplierList', uniq(data,'supplier'));
+  dl('deviceList', uniq(data,'device'));
+  dl('brandList', uniq(data,'brand'));
+  dl('projectList', uniq(data,'project'));
+}
+
+// ── Metrics ──
+function renderMetrics() {
+  const approved = data.filter(r=>r.status==='Đã duyệt').length;
+  const pending = data.filter(r=>r.status==='Chờ duyệt').length;
+  const expired = data.filter(r=>r.expiry && r.expiry < today).length;
+  const suppliers = new Set(data.map(r=>r.supplier)).size;
+  const projects = new Set(data.map(r=>r.project).filter(Boolean)).size;
+
+  document.getElementById('metricsBar').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-icon" style="background:#e8f1fd;color:var(--primary)"><i class="fas fa-file-invoice"></i></div>
+      <div class="metric-label">Tổng báo giá</div>
+      <div class="metric-val">${data.length}</div>
+      <div class="metric-sub">mục nhập</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon" style="background:var(--success-light);color:var(--success)"><i class="fas fa-circle-check"></i></div>
+      <div class="metric-label">Đã duyệt</div>
+      <div class="metric-val">${approved}</div>
+      <div class="metric-sub">báo giá</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon" style="background:var(--warning-light);color:var(--warning)"><i class="fas fa-clock"></i></div>
+      <div class="metric-label">Chờ duyệt</div>
+      <div class="metric-val">${pending}</div>
+      <div class="metric-sub">báo giá</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon" style="background:var(--danger-light);color:var(--danger)"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="metric-label">Hết hạn</div>
+      <div class="metric-val">${expired}</div>
+      <div class="metric-sub">cần cập nhật</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon" style="background:var(--info-light);color:var(--info)"><i class="fas fa-building"></i></div>
+      <div class="metric-label">Nhà cung cấp</div>
+      <div class="metric-val">${suppliers}</div>
+      <div class="metric-sub">${projects} dự án</div>
+    </div>
+  `;
+}
+
+// ── Main Table ──
+function getFiltered() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const fSup = document.getElementById('fSupplier').value;
+  const fProj = document.getElementById('fProject').value;
+  const fCat = document.getElementById('fCat').value;
+  const fBrand = document.getElementById('fBrand').value;
+  const fStat = document.getElementById('fStatus').value;
+
+  return data.filter(r => {
+    if(fSup && r.supplier !== fSup) return false;
+    if(fProj && r.project !== fProj) return false;
+    if(fCat && r.cat !== fCat) return false;
+    if(fBrand && r.brand !== fBrand) return false;
+    if(fStat && r.status !== fStat) return false;
+    if(search) {
+      const match = (r.device||'').toLowerCase().includes(search) ||
+                    (r.model||'').toLowerCase().includes(search) ||
+                    (r.supplier||'').toLowerCase().includes(search) ||
+                    (r.project||'').toLowerCase().includes(search) ||
+                    (r.brand||'').toLowerCase().includes(search) ||
+                    (r.spec||'').toLowerCase().includes(search);
+      if(!match) return false;
+    }
+    return true;
+  });
+}
+
+function renderTable() {
+  let rows = getFiltered();
+  document.getElementById('tableCount').textContent = `${rows.length} mục tìm thấy`;
+  
+  if(!rows.length) {
+    document.getElementById('tableBody').innerHTML = '';
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+  document.getElementById('emptyState').style.display = 'none';
+
+  // Sort
+  rows.sort((a,b) => {
+    let va = a[sortField], vb = b[sortField];
+    if(typeof va === 'string') {
+      return sortAsc ? va.localeCompare(vb, 'vi') : vb.localeCompare(va, 'vi');
+    }
+    if(sortField === 'total') { va=a.price*a.qty; vb=b.price*b.qty; }
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  // Tìm giá tốt nhất theo từng thiết bị
+  const bestPrices = {};
+  data.forEach(r => {
+    if(!bestPrices[r.device] || r.price < bestPrices[r.device]) {
+      bestPrices[r.device] = r.price;
+    }
+  });
+
+  const sups = [...new Set(data.map(r=>r.supplier))].sort();
+  const supColor = (s) => COLORS[sups.indexOf(s) % COLORS.length];
+
+  document.getElementById('tableBody').innerHTML = rows.map((r,i) => {
+    const total = r.price * r.qty;
+    const bestP = bestPrices[r.device];
+    const isBest = r.price === bestP;
+    const diffPct = bestP ? Math.round(((r.price - bestP)/bestP)*100) : 0;
+    
+    let diffHtml = isBest ? '<br><span class="price-best"><i class="fas fa-star"></i> Giá tốt nhất</span>' : '';
+    if(!isBest && diffPct > 0) diffHtml = `<br><span class="price-up">+${diffPct}% so với tốt nhất</span>`;
+    
+    const isExpired = r.expiry && r.expiry < today;
+    const color = supColor(r.supplier);
+    const specShort = r.spec ? (r.spec.length > 50 ? r.spec.slice(0,50)+'…' : r.spec) : '—';
+
+    return `<tr class="${isBest?'best-row':''}">
+      <td style="color:var(--text3);font-size:12px">${i+1}</td>
+      <td><div style="font-weight:600;font-size:13px">${r.device}</div>${r.project?`<span class="project-tag" style="margin-top:3px;display:inline-block">${r.project}</span>`:''}</td>
+      <td><span class="mono" style="font-size:12px">${r.model||'—'}</span></td>
+      <td><span class="tag">${r.brand||'—'}</span></td>
+      <td style="font-size:12px">${r.origin||'—'}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:180px" title="${r.spec||''}">${specShort}</td>
+      <td><span class="sup-chip" style="background:${color}18;color:${color}">${r.supplier}</span></td>
+      <td><span class="badge badge-gray">${r.cat}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.project||'—'}</td>
+      <td><div class="mono" style="font-weight:600">${fmt(r.price)}đ</div>${diffHtml}</td>
+      <td style="text-align:right;font-weight:500">${r.qty}</td>
+      <td><div class="mono" style="font-weight:700;font-size:13px">${fmt(total)}đ</div><div style="font-size:10px;color:var(--text3)">Có VAT: ${fmt(total*(1+(r.vat||0)/100))}đ</div></td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="color:var(--text2);font-size:12px">${r.date}</td>
+      <td style="color:${isExpired?'var(--danger)':'var(--text2)'};font-size:12px">${r.expiry||'—'}${isExpired?'<br><span style="font-size:10px;color:var(--danger)"><i class="fas fa-exclamation-circle"></i> Hết hạn</span>':''}</td>
+      <td>
+        <div class="row-actions" style="justify-content:center">
+          <button class="act-btn view" onclick="viewDetail(${r.id})" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+          <button class="act-btn edit" onclick="editEntry(${r.id})" title="Sửa"><i class="fas fa-pen"></i></button>
+          <button class="act-btn del" onclick="deleteEntry(${r.id})" title="Xoá"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Sort Event ──
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const f = th.dataset.field;
+    if(sortField===f) sortAsc=!sortAsc;
+    else {sortField=f;sortAsc=true;}
+    document.querySelectorAll('th.sortable').forEach(t=>t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.sort-icon').className = `fas fa-sort-${sortAsc?'up':'down'} sort-icon`;
+    renderTable();
+  });
+});
+
+// ── Detail view ──
+function viewDetail(id) {
+  const r = data.find(d=>d.id===id);
+  if(!r) return;
+  document.getElementById('detailTitle').textContent = r.device;
+  document.getElementById('detailSub').textContent = `${r.brand} · ${r.model} · ${r.supplier}`;
+  document.getElementById('detailEditBtn').onclick = () => { closeDetail(); editEntry(id); };
+
+  const total = r.price * r.qty;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><label>Model</label><div class="val mono">${r.model||'—'}</div></div>
+      <div class="detail-item"><label>Thương hiệu</label><div class="val">${r.brand||'—'}</div></div>
+      <div class="detail-item"><label>Xuất xứ</label><div class="val">${r.origin||'—'}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><label>Thông số kỹ thuật</label><div class="val" style="line-height:1.7;color:var(--text2)">${r.spec||'—'}</div></div>
+      <div class="detail-item"><label>Nhà cung cấp</label><div class="val" style="font-weight:600">${r.supplier}</div></div>
+      <div class="detail-item"><label>Danh mục</label><div class="val">${r.cat}</div></div>
+      <div class="detail-item"><label>Dự án</label><div class="val">${r.project||'—'}</div></div>
+      <div class="detail-item"><label>Đơn giá</label><div class="val mono" style="font-weight:600;color:var(--primary)">${fmt(r.price)}đ</div></div>
+      <div class="detail-item"><label>Số lượng</label><div class="val">${r.qty}</div></div>
+      <div class="detail-item"><label>VAT</label><div class="val">${r.vat}%</div></div>
+      <div class="detail-item"><label>Thành tiền (Chưa VAT)</label><div class="val mono" style="font-weight:700">${fmt(total)}đ</div></div>
+      <div class="detail-item" style="grid-column:span 2"><label>Tổng chi phí (Có VAT)</label><div class="val mono" style="font-weight:700;color:var(--success);font-size:15px">${fmt(total*(1+r.vat/100))}đ</div></div>
+      <div class="detail-item"><label>Trạng thái</label><div class="val">${statusBadge(r.status)}</div></div>
+      <div class="detail-item"><label>Ngày báo giá</label><div class="val">${r.date}</div></div>
+      <div class="detail-item"><label>Ngày hết hạn</label><div class="val">${r.expiry||'—'}</div></div>
+    </div>
+    ${r.note ? `<div class="detail-note"><strong>Ghi chú:</strong> ${r.note}</div>` : ''}
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+// ── Supplier view ──
+function renderSupplierView() {
+  const sups = [...new Set(data.map(r=>r.supplier))].sort();
+  if(!sups.length) {
+    document.getElementById('supplierView').innerHTML = '<div class="empty-state"><i class="fas fa-building-circle-exclamation"></i><h3>Chưa có nhà cung cấp nào</h3></div>';
+    return;
+  }
+  document.getElementById('supplierView').innerHTML = `
+    <div class="supplier-grid">
+      ${sups.map((sup,i) => {
+        const items = data.filter(r=>r.supplier===sup);
+        const total = items.reduce((s,r)=>s+r.price*r.qty,0);
+        const totalVat = items.reduce((s,r)=>s+r.price*r.qty*(1+(r.vat||0)/100),0);
+        const color = COLORS[i%COLORS.length];
+        return `<div class="supplier-card">
+          <div class="supplier-card-header">
+            <div class="supplier-avatar" style="background:${color}18;color:${color}">${sup[0].toUpperCase()}</div>
+            <div>
+              <div class="supplier-name">${sup}</div>
+              <div class="supplier-meta">${items.length} thiết bị báo giá · ${[...new Set(items.map(r=>r.cat))].join(', ')}</div>
+            </div>
+            <div class="supplier-total">
+              <div class="supplier-total-lbl">Chưa VAT</div>
+              <div class="supplier-total-val" style="color:${color}">${fmtM(total)}M</div>
+              <div class="supplier-total-lbl">Có VAT: ${fmtM(totalVat)}M</div>
+            </div>
+          </div>
+          <table class="mini-table">
+            <thead><tr><th>Thiết bị</th><th>Model</th><th>Dự án</th><th>Đơn giá</th><th>SL</th><th>TT</th></tr></thead>
+            <tbody>${items.map(r=>`<tr>
+              <td>${r.device}</td>
+              <td class="mono" style="font-size:10px">${r.model||'—'}</td>
+              <td style="font-size:10px;color:var(--text2)">${r.project||'—'}</td>
+              <td class="mono">${fmt(r.price)}đ</td>
+              <td style="text-align:right">${r.qty}</td>
+              <td>${statusBadge(r.status)}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── Project view ──
+function renderProjectView() {
+  const projects = [...new Set(data.map(r=>r.project).filter(Boolean))].sort();
+  if(!projects.length) {
+    document.getElementById('projectView').innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Chưa có dự án nào</h3><p>Thêm dự án khi nhập báo giá</p></div>';
+    return;
+  }
+  document.getElementById('projectView').innerHTML = `
+    <div class="supplier-grid">
+      ${projects.map((proj,i) => {
+        const items = data.filter(r=>r.project===proj);
+        const total = items.reduce((s,r)=>s+r.price*r.qty,0);
+        const totalVat = items.reduce((s,r)=>s+r.price*r.qty*(1+(r.vat||0)/100),0);
+        const color = COLORS[i%COLORS.length];
+        return `<div class="supplier-card">
+          <div class="supplier-card-header">
+            <div class="supplier-avatar" style="background:${color}18;color:${color}"><i class="fas fa-diagram-project"></i></div>
+            <div>
+              <div class="supplier-name">${proj}</div>
+              <div class="supplier-meta">${items.length} thiết bị · ${[...new Set(items.map(r=>r.supplier))].length} nhà cung cấp</div>
+            </div>
+            <div class="supplier-total">
+              <div class="supplier-total-lbl">Chưa VAT</div>
+              <div class="supplier-total-val" style="color:${color}">${fmtM(total)}M</div>
+              <div class="supplier-total-lbl">Có VAT: ${fmtM(totalVat)}M</div>
+            </div>
+          </div>
+          <table class="mini-table">
+            <thead><tr><th>Thiết bị</th><th>Thương hiệu</th><th>Model</th><th>NCC</th><th>Thành tiền</th><th>TT</th></tr></thead>
+            <tbody>${items.map(r=>`<tr>
+              <td>${r.device}</td>
+              <td><span class="tag">${r.brand||'—'}</span></td>
+              <td class="mono" style="font-size:10px">${r.model||'—'}</td>
+              <td style="font-size:10px;color:var(--text2)">${r.supplier}</td>
+              <td class="mono">${fmt(r.price*r.qty)}đ</td>
+              <td>${statusBadge(r.status)}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── Charts ──
+function destroyCharts() {
+  Object.values(chartInsts).forEach(c => { try{c.destroy();}catch(e){} });
+  chartInsts = {};
+}
+
+function renderCharts() {
+  destroyCharts();
+  
+  // Biểu đồ so sánh giá
+  const devMulti = [...new Set(data.map(r=>r.device))].filter(d=>data.filter(r=>r.device===d).length>1);
+  const suppliers = [...new Set(data.map(r=>r.supplier))].sort();
+  const datasets = suppliers.map((sup,i)=>({
+    label: sup, borderWidth:1,
+    data: devMulti.map(dev=>{
+      const e=data.find(r=>r.supplier===sup&&r.device===dev);
+      return e?Math.round(e.price/1000000):null;
+    }),
+    backgroundColor: COLORS[i%COLORS.length]+'99',
+    borderColor: COLORS[i%COLORS.length],
+  }));
+
+  document.getElementById('chartLegend').innerHTML = suppliers.map((s,i)=>
+    `<span class="legend-item"><span class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></span>${s}</span>`
+  ).join('');
+
+  chartInsts.price = new Chart(document.getElementById('priceChart'),{
+    type:'bar', data:{ labels: devMulti.map(d=>d.length>18?d.slice(0,16)+'…':d), datasets },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Triệu VNĐ'}}}}
+  });
+
+  // Biểu đồ theo nhà cung cấp
+  const supVals = suppliers.map(s => Math.round(data.filter(r=>r.supplier===s).reduce((sum,r)=>sum+r.price*r.qty,0)/1000000));
+  chartInsts.sup = new Chart(document.getElementById('supplierChart'),{
+    type:'bar', data:{ labels: suppliers.map(s=>s.length>12?s.slice(0,10)+'…':s), datasets:[{data:supVals,backgroundColor:COLORS.map(c=>c+'cc'),borderWidth:0}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+
+  // Biểu đồ theo danh mục
+  const cats = [...new Set(data.map(r=>r.cat))].sort();
+  const catCounts = cats.map(c => data.filter(r=>r.cat===c).length);
+  chartInsts.cat = new Chart(document.getElementById('catChart'),{
+    type:'doughnut', data:{ labels: cats, datasets:[{data:catCounts,backgroundColor:COLORS,borderWidth:0}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+  });
+
+  // Biểu đồ theo dự án
+  const projs = [...new Set(data.map(r=>r.project).filter(Boolean))].sort();
+  const projVals = projs.map(p => Math.round(data.filter(r=>r.project===p).reduce((sum,r)=>sum+r.price*r.qty,0)/1000000));
+  chartInsts.proj = new Chart(document.getElementById('projectChart'),{
+    type:'pie', data:{ labels: projs, datasets:[{data:projVals,backgroundColor:COLORS,borderWidth:0}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+  });
+
+  // Biểu đồ theo thương hiệu
+  const brands = [...new Set(data.map(r=>r.brand).filter(Boolean))].sort();
+  const brandCounts = brands.map(b => data.filter(r=>r.brand===b).length);
+  chartInsts.brand = new Chart(document.getElementById('brandChart'),{
+    type:'polarArea', data:{ labels: brands, datasets:[{data:brandCounts,backgroundColor:COLORS.map(c=>c+'88'),borderWidth:1,borderColor:'#fff'}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+  });
+}
+
+// ── Modals Trigger ──
+function openModal(row=null) {
+  editId = row ? row.id : null;
+  document.getElementById('modalTitle').textContent = row ? 'Chỉnh sửa báo giá' : 'Thêm báo giá mới';
+  
+  const fields = ['Device','Model','Brand','Origin','Spec','Supplier','Project','Price','Qty','Vat','Date','Expiry','Status'];
+  if(row) {
+    fields.forEach(f => {
+      const el = document.getElementById(`f${f}`);
+      if(el) el.value = row[f.toLowerCase()] || (f==='Vat'||f==='Qty'?0:'');
+    });
+    document.getElementById('fCatF').value = row.cat;
+    document.getElementById('fNote').value = row.note || '';
+  } else {
+    ['fDevice','fModel','fBrand','fOrigin','fSpec','fSupplier','fProject','fNote'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fPrice').value = '';
+    document.getElementById('fQty').value = '1';
+    document.getElementById('fVat').value = '10';
+    document.getElementById('fDate').value = today;
+    document.getElementById('fExpiry').value = '';
+    document.getElementById('fStatus').value = 'Mới';
+    document.getElementById('fCatF').selectedIndex = 0;
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+function editEntry(id) { const r=data.find(d=>d.id===id); if(r) openModal(r); }
+
+// ── SỬA LỖI KIỂM TRA ĐẦU VÀO TẠI ĐÂY ──
+function saveEntry() {
+  const device = document.getElementById('fDevice').value.trim();
+  const supplier = document.getElementById('fSupplier').value.trim();
+  const priceRaw = document.getElementById('fPrice').value;
+  const price = parseFloat(priceRaw);
+  const model = document.getElementById('fModel').value.trim();
+  const brand = document.getElementById('fBrand').value.trim();
+
+  // Kiểm tra chuỗi trống hoặc giá trị số không hợp lệ (NaN)
+  if(!device || !supplier || !model || !brand || isNaN(price) || priceRaw === "") {
+    showToast('Vui lòng nhập đủ thông tin bắt buộc (*)', 'error');
+    return;
+  }
+
+  const entry = {
+    id: editId || nextId++,
+    device, model, brand,
+    origin: document.getElementById('fOrigin').value,
+    spec: document.getElementById('fSpec').value.trim(),
+    supplier,
+    cat: document.getElementById('fCatF').value,
+    project: document.getElementById('fProject').value.trim(),
+    price,
+    qty: parseInt(document.getElementById('fQty').value)||1,
+    vat: parseFloat(document.getElementById('fVat').value)||0,
+    date: document.getElementById('fDate').value||today,
+    expiry: document.getElementById('fExpiry').value||'',
+    status: document.getElementById('fStatus').value,
+    note: document.getElementById('fNote').value.trim()
+  };
+
+  if(editId) data = data.map(d=>d.id===editId?entry:d);
+  else data.push(entry);
+
+  closeModal();
+  refresh();
+  showToast(editId ? 'Đã cập nhật báo giá!' : 'Đã thêm báo giá mới!', 'success');
+}
+
+function deleteEntry(id) {
+  if(!confirm('Xoá báo giá này? Thao tác không thể hoàn tác.')) return;
+  data = data.filter(d=>d.id!==id);
+  refresh();
+  showToast('Đã xoá báo giá.', 'success');
+}
+
+// ── Export Utilities ──
+function exportCSV() {
+  const rows = getFiltered();
+  const hdr = ['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số KT','Nhà cung cấp','Danh mục','Dự án','Đơn giá','Số lượng','VAT(%)','Thành tiền','Có VAT','Trạng thái','Ngày báo','Hết hạn','Ghi chú'];
+  const lines = [hdr.join(','), ...rows.map((r,i)=>[
+    i+1, r.device, r.model, r.brand, r.origin, (r.spec||'').replace(/,/g,';'), r.supplier, r.cat, r.project, r.price, r.qty, r.vat, r.price*r.qty, r.price*r.qty*(1+r.vat/100), r.status, r.date, r.expiry, (r.note||'').replace(/,/g,';')
+  ].map(v=>`"${v}"`).join(','))];
+  dlBlob(lines.join('\r\n'), 'Bao_gia_thiet_bi.csv', 'text/csv;charset=utf-8;');
+}
+
+function exportExcel() {
+  const rows = getFiltered();
+  const dataAOA = [['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp','Danh mục','Dự án','Đơn giá (VNĐ)','Số lượng','VAT (%)','Thành tiền','Tổng (gồm VAT)','Trạng thái','Ngày báo','Hết hạn','Ghi chú']];
+  rows.forEach((r,i)=>{
+    const tt = r.price*r.qty;
+    dataAOA.push([i+1,r.device,r.model,r.brand,r.origin,r.spec,r.supplier,r.cat,r.project,r.price,r.qty,r.vat,tt,tt*(1+r.vat/100),r.status,r.date,r.expiry,r.note]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(dataAOA);
+  XLSX.utils.book_append_sheet(wb, ws, 'Báo Giá');
+  XLSX.writeFile(wb, 'Bao_gia_thiet_bi.xlsx');
+}
+
+// ── Import Utilities ──
+function openImport() { document.getElementById('importOverlay').classList.add('open'); }
+function closeImport() { document.getElementById('importOverlay').classList.remove('open'); }
+
+function handleImport(e) {
+  const f = e.target.files[0]; if(!f) return;
+  const rdr = new FileReader();
+  rdr.onload = function(evt) {
+    try {
+      const dataBin = evt.target.result;
+      const wb = XLSX.read(dataBin, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+      if(rows.length <= 1) { showToast('File trống hoặc không đúng cấu trúc', 'error'); return; }
+      
+      let count = 0;
+      for(let i=1; i<rows.length; i++) {
+        const r = rows[i]; if(!r[0] && !r[1] && !r[5]) continue; // bỏ dòng trống
+        data.push({
+          id: nextId++, device: String(r[1]||'').trim(), model: String(r[2]||'').trim(), brand: String(r[3]||'').trim(), origin: String(r[4]||'').trim(), spec: String(r[5]||'').trim(), supplier: String(r[6]||'').trim(), cat: String(r[7]||'Điện'), project: String(r[8]||'').trim(),
+          price: parseFloat(r[9])||0, qty: parseInt(r[10])||1, vat: parseFloat(r[11])||0, date: r[12] ? parseDate(r[12]) : today, expiry: r[13] ? parseDate(r[13]) : '', status: String(r[14]||'Mới').trim(), note: String(r[15]||'').trim()
+        });
+        count++;
+      }
+      closeImport(); refresh(); showToast(`Đã nhập thành công ${count} mục báo giá!`, 'success');
+    } catch(err) { console.error(err); showToast('Có lỗi xảy ra khi đọc file!', 'error'); }
+  };
+  rdr.readAsBinaryString(f);
+  document.getElementById('fileInput').value = '';
+}
+
+function downloadTemplate() {
+  const hdr = ['STT','Thiết bị *','Model *','Thương hiệu *','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp *','Danh mục','Dự án','Đơn giá (VNĐ) *','Số lượng','VAT (%)','(Tự tính)','(Tự tính)','Trạng thái','Ngày báo giá','Hết hạn','Ghi chú'];
+  const sample = [1,'Tên thiết bị','Model123','Thương hiệu','Mỹ','Thông số kỹ thuật...','Tên NCC','Điện','Tên dự án',10000000,2,10,'','','Mới','2026-05-25','2026-08-25','Ghi chú...'];
+  const wb = XLSX.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([hdr,sample]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  XLSX.writeFile(wb, 'Template_Bao_Gia.xlsx');
+}
+
+// ── Helpers ──
+function fmt(n) { return String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+function fmtM(n) { return ( (n||0) / 1000000 ).toFixed(1); }
+function statusBadge(s) {
+  const cls = { 'Đã duyệt':'success', 'Chờ duyệt':'warning', 'Hết hạn':'danger', 'Mới':'info' };
+  return `<span class="badge badge-${cls[s]||'gray'}">${s}</span>`;
+}
+function parseDate(v) {
+  if(!v) return '';
+  if(v instanceof Date) return v.toISOString().split('T')[0];
+  if(typeof v === 'number') return new Date((v - 25569) * 86400 * 1000).toISOString().split('T')[0];
+  return String(v).trim();
+}
+function dlBlob(content, name, mime) {
+  const blob = new Blob(["\ufeff" + content], { type: mime });
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+}
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  const icon = t.querySelector('i');
+  icon.className = `fas ${type==='success'?'fa-check-circle':'fa-circle-exclamation'}`;
+  t.className = `toast ${type}`;
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ── Drag-drop import zone ──
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.style.borderColor='var(--primary)';});
+dz.addEventListener('dragleave', ()=>dz.style.borderColor='');
+dz.addEventListener('drop', e=>{
+  e.preventDefault(); dz.style.borderColor='';
+  const f = e.dataTransfer.files[0];
+  if(f){ const inp=document.getElementById('fileInput'); inp.files=e.dataTransfer.files; handleImport({target:{files:e.dataTransfer.files}}); }
+});
+</script>
+</body>
+</html>
