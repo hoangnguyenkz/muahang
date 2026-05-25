@@ -166,7 +166,6 @@ th.sortable:hover { color: var(--primary); }
 th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 10px; }
 th.sorted .sort-icon { opacity: 1; color: var(--primary); }
 tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
-tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: #f5f8ff; }
 tbody tr.best-row td { background: rgba(15,169,104,0.03); }
@@ -291,10 +290,10 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   padding: 12px 18px; font-size: 13px; font-weight: 500;
   display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg);
   transform: translateY(80px); opacity: 0; transition: all 0.25s ease;
-  pointer-events: none; max-width: 340px;
+  pointer-events: none; max-width: 380px;
 }
 .toast.show { transform: none; opacity: 1; }
-.toast i { font-size: 16px; }
+.toast i { font-size: 16px; flex-shrink: 0; }
 .toast.success i { color: #4ade80; }
 .toast.error i { color: #f87171; }
 
@@ -321,15 +320,21 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
 }
 
 .tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--card2); color: var(--text2); border: 1px solid var(--border); }
+
+/* ── Price input hint ── */
+.price-input-wrap { position: relative; }
+.price-input-wrap input { padding-right: 36px; }
+.price-input-wrap .currency-label { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text3); font-weight: 600; pointer-events: none; }
 </style>
 </head>
 <body>
 
+<!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon"><i class="fas fa-boxes-stacking"></i></div>
     <div>
-      <div class="logo-text">PriceTrack Pro</div>
+      <div class="logo-text">TID CO.LTD</div>
       <div class="logo-sub">Quản lý báo giá thiết bị</div>
     </div>
   </div>
@@ -346,11 +351,13 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   <div class="nav-item" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Xuất CSV</div>
 
   <div class="sidebar-footer">
-    <div class="version">PriceTrack Pro v2.0 · 2026</div>
+    <div class="version">PriceTrack Pro v2.1 · 2026</div>
   </div>
 </nav>
 
+<!-- MAIN -->
 <div class="main">
+  <!-- TOPBAR -->
   <div class="topbar">
     <button class="btn btn-icon" onclick="toggleSidebar()" title="Menu" style="border:none;background:none;font-size:16px;color:var(--text2);display:none" id="menuBtn">
       <i class="fas fa-bars"></i>
@@ -365,8 +372,10 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
     </div>
   </div>
 
+  <!-- CONTENT -->
   <div class="content" id="content">
 
+    <!-- VIEW: ALL -->
     <div id="view-all">
       <div class="metrics" id="metricsBar"></div>
 
@@ -376,10 +385,10 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
           <input type="text" id="searchInput" placeholder="Tìm thiết bị, model, nhà cung cấp, dự án..." oninput="renderTable()">
         </div>
         <select id="fSupplier" onchange="renderTable()"><option value="">Tất cả NCC</option></select>
-        <select id="fProject" onchange="renderTable()"><option value="">Tất cả dự án</option></select>
+        <select id="filterProject" onchange="renderTable()"><option value="">Tất cả dự án</option></select>
         <select id="fCat" onchange="renderTable()"><option value="">Tất cả danh mục</option></select>
-        <select id="fBrand" onchange="renderTable()"><option value="">Tất cả thương hiệu</option></select>
-        <select id="fStatus" onchange="renderTable()">
+        <select id="filterBrand" onchange="renderTable()"><option value="">Tất cả thương hiệu</option></select>
+        <select id="filterStatus" onchange="renderTable()">
           <option value="">Tất cả trạng thái</option>
           <option value="Đã duyệt">Đã duyệt</option>
           <option value="Chờ duyệt">Chờ duyệt</option>
@@ -430,14 +439,17 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
       </div>
     </div>
 
+    <!-- VIEW: SUPPLIER -->
     <div id="view-supplier" style="display:none">
       <div id="supplierView"></div>
     </div>
 
+    <!-- VIEW: PROJECT -->
     <div id="view-project" style="display:none">
       <div id="projectView"></div>
     </div>
 
+    <!-- VIEW: CHART -->
     <div id="view-chart" style="display:none">
       <div class="chart-grid">
         <div class="chart-card chart-card-full">
@@ -472,12 +484,13 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   </div>
 </div>
 
+<!-- MODAL FORM -->
 <div class="overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="modalTitle">Thêm báo giá mới</div>
-        <div class="modal-sub">Điền đầy đủ thông tin để lưu báo giá</div>
+        <div class="modal-sub">Điền đầy đủ thông tin để lưu báo giá · Trường có <span style="color:var(--danger)">*</span> là bắt buộc</div>
       </div>
       <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
     </div>
@@ -491,11 +504,11 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
           <datalist id="deviceList"></datalist>
         </div>
         <div class="form-group">
-          <label>Model <span class="required-star">*</span></label>
+          <label>Model</label>
           <input type="text" id="fModel" placeholder="VD: SRT10KXLI">
         </div>
         <div class="form-group">
-          <label>Thương hiệu <span class="required-star">*</span></label>
+          <label>Thương hiệu</label>
           <input type="text" id="fBrand" placeholder="VD: APC, Cisco, Dell..." list="brandList">
           <datalist id="brandList"></datalist>
         </div>
@@ -532,7 +545,7 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
 
         <div class="form-group form-col-2">
           <label>Nhà cung cấp <span class="required-star">*</span></label>
-          <input type="text" id="fSupplier" placeholder="Tên công ty / nhà cung cấp" list="supplierList">
+          <input type="text" id="fSupplierInput" placeholder="Tên công ty / nhà cung cấp" list="supplierList">
           <datalist id="supplierList"></datalist>
         </div>
         <div class="form-group">
@@ -545,15 +558,20 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
 
         <div class="form-group">
           <label>Đơn giá (VNĐ) <span class="required-star">*</span></label>
-          <input type="number" id="fPrice" placeholder="0" min="0">
+          <div class="price-input-wrap">
+            <input type="text" id="fPrice" placeholder="45000000" inputmode="numeric"
+              oninput="formatPriceInput(this)" onblur="formatPriceBlur(this)">
+            <span class="currency-label">₫</span>
+          </div>
+          <div class="form-hint" id="pricePreview" style="color:var(--primary);font-weight:600"></div>
         </div>
         <div class="form-group">
           <label>Số lượng</label>
-          <input type="number" id="fQty" value="1" min="1">
+          <input type="number" id="fQty" value="1" min="1" step="1">
         </div>
         <div class="form-group">
           <label>VAT (%)</label>
-          <input type="number" id="fVat" value="10" min="0" max="100">
+          <input type="number" id="fVat" value="10" min="0" max="100" step="0.5">
         </div>
         <div class="form-group">
           <label>Ngày báo giá</label>
@@ -582,11 +600,12 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   </div>
 </div>
 
+<!-- DETAIL MODAL -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" id="detailModal" style="max-width:680px">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="detailTitle"></div>
+        <div class="modal-title" id="detailTitle">Chi tiết báo giá</div>
         <div class="modal-sub" id="detailSub"></div>
       </div>
       <button class="close-btn" onclick="closeDetail()"><i class="fas fa-times"></i></button>
@@ -599,6 +618,7 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   </div>
 </div>
 
+<!-- IMPORT MODAL -->
 <div class="overlay" id="importOverlay" onclick="if(event.target===this)closeImport()">
   <div class="modal" style="max-width:500px">
     <div class="modal-header">
@@ -624,80 +644,131 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
   </div>
 </div>
 
+<!-- TOAST -->
 <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg"></span></div>
 
 <script>
 // ── Data ──
 let data = [
-  {id:1,device:'UPS Online 10KVA',model:'SRT10KXLI',brand:'APC',origin:'Mỹ',spec:'10KVA/10KW, 230VAC, 3 pha vào 1 pha ra, pin 12V 7AH x20, LCD display, RS232/USB',supplier:'Công ty TNHH Minh Khang',cat:'Điện',project:'Trụ sở HCM 2026',price:85000000,qty:2,vat:10,date:'2026-05-10',expiry:'2026-08-10',status:'Đã duyệt',note:'Giao hàng trong 4 tuần. Thanh toán 30/70.'},
-  {id:2,device:'UPS Online 10KVA',model:'9PX10KIRPM',brand:'Eaton',origin:'Pháp',spec:'10KVA/10KW, chỗ trống hot-swap bộ nguồn, LCD, hiệu suất 94%',supplier:'Điện Năng Toàn Cầu',cat:'Điện',project:'Trụ sở HCM 2026',price:92000000,qty:2,vat:10,date:'2026-05-12',expiry:'2026-07-12',status:'Chờ duyệt',note:'Sẵn hàng tại kho HCM'},
-  {id:3,device:'Switch 24-Port PoE',model:'C9200L-24P-4G-E',brand:'Cisco',origin:'Mỹ',spec:'24 ports 10/100/1000 PoE+ (370W), 4x 1G uplinks, Network Essentials',supplier:'NetViet Distribution',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:34500000,qty:5,vat:10,date:'2026-05-14',expiry:'2026-08-14',status:'Đã duyệt',note:'Giá gồm Smartnet 1 năm'},
-  {id:4,device:'Switch 24-Port PoE',model:'S5735-L24P4X-A1',brand:'Huawei',origin:'Trung Quốc',spec:'24 ports Gig PoE+, 4x 10G SFP+ uplinks, 370W PoE budget',supplier:'Giải Pháp Công Nghệ Sao Nam',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:21000000,qty:5,vat:10,date:'2026-05-15',expiry:'2026-08-15',status:'Mới',note:'Bảo hành 12 tháng tại hãng'},
-  {id:5,device:'Máy phát điện 250KVA',model:'C275D5',brand:'Cummins',origin:'Ấn Độ',spec:'Động cơ Cummins 6CTAA8.3-G2, đầu phát Stamford, bảng điều khiển PowerCommand 1.2',supplier:'Cơ điện Phú Phát',cat:'Điện',project:'Nhà máy Long An',price:680000000,qty:1,vat:10,date:'2026-05-01',expiry:'2026-06-01',status:'Đã duyệt',note:'Giá gồm vỏ chống ồn đồng bộ, tủ ATS 400A'},
-  {id:6,device:'Máy phát điện 250KVA',model:'MDS-275',brand:'Mitsubishi',origin:'Nhật Bản',spec:'Động cơ Mitsubishi, đầu phát Mecc Alte, lắp ráp Việt Nam',supplier:'Tổng kho Máy phát điện',cat:'Điện',project:'Nhà máy Long An',price:590000000,qty:1,vat:10,date:'2026-05-05',expiry:'2026-05-20',status:'Hết hạn',note:'Cần check lại giá thép tăng'},
-  {id:7,device:'Cáp mạng Cat6 UTP',model:'VOL-6UP4-24',brand:'CommScope',origin:'Mỹ',spec:'Cáp đồng Cat6 UTP, 4 cặp xoắn, 23 AWG, lõi chữ thập, thùng 305m màu xanh',supplier:'CableVN',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:2850000,qty:40,vat:10,date:'2026-05-11',expiry:'2026-09-11',status:'Đã duyệt',note:'Hàng sẵn, free ship nội thành'},
+  {id:1,device:'UPS Online 10KVA',model:'SRT10KXLI',brand:'APC',origin:'Mỹ',spec:'10KVA/10KW, 230VAC, 3 pha vào 1 pha ra, pin 12V 7AH x20, LCD display, RS232/USB',supplier:'Công ty TNHH Minh Khang',cat:'Điện',project:'Trụ sở HCM 2026',price:45000000,qty:2,vat:10,date:'2026-05-01',expiry:'2026-07-01',status:'Đã duyệt',note:'Bảo hành 2 năm, miễn phí lắp đặt, giao trong 7 ngày'},
+  {id:2,device:'UPS Online 10KVA',model:'SRT10KXLI',brand:'APC',origin:'Mỹ',spec:'10KVA/10KW, 230VAC, 3 pha vào 1 pha ra, pin 12V 7AH x20',supplier:'Viễn Đông Tech',cat:'Điện',project:'Trụ sở HCM 2026',price:43500000,qty:2,vat:10,date:'2026-05-03',expiry:'2026-07-03',status:'Chờ duyệt',note:'Hàng chính hãng, bảo hành 18 tháng'},
+  {id:3,device:'Switch 48 Port PoE+',model:'C9300-48P-E',brand:'Cisco',origin:'Mỹ',spec:'48x 1G PoE+ ports, 4x 10G uplink, 740W PoE budget, VLAN/QoS, Layer 3',supplier:'NetViet Distribution',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:98700000,qty:3,vat:10,date:'2026-04-20',expiry:'2026-06-20',status:'Đã duyệt',note:''},
+  {id:4,device:'Switch 48 Port PoE+',model:'C9300-48P-E',brand:'Cisco',origin:'Mỹ',spec:'48x 1G PoE+ ports, 4x 10G uplink, 740W PoE budget',supplier:'Công ty TNHH Minh Khang',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:102000000,qty:3,vat:10,date:'2026-04-22',expiry:'2026-06-22',status:'Mới',note:'Có phụ kiện đi kèm'},
+  {id:5,device:'Camera IP Dome 4MP',model:'DS-2CD2143G2-I',brand:'Hikvision',origin:'Trung Quốc',spec:'4MP, IR 40m, H.265+, IP67, IK10, Wide dynamic range, PoE 802.3af',supplier:'An Ninh Việt',cat:'An ninh',project:'Camera giám sát 2026',price:2850000,qty:20,vat:10,date:'2026-05-10',expiry:'2026-08-10',status:'Chờ duyệt',note:''},
+  {id:6,device:'Camera IP Dome 4MP',model:'DS-2CD2143G2-I',brand:'Hikvision',origin:'Trung Quốc',spec:'4MP, IR 40m, H.265+, IP67, IK10, PoE',supplier:'Viễn Đông Tech',cat:'An ninh',project:'Camera giám sát 2026',price:2700000,qty:20,vat:10,date:'2026-05-12',expiry:'2026-08-12',status:'Mới',note:''},
+  {id:7,device:'Máy chủ Rack 2U',model:'PowerEdge R740',brand:'Dell',origin:'Mỹ',spec:'2x Xeon Gold 6226R, 128GB RAM ECC, 4x 2.4TB SAS 10K, PERC H730P, iDRAC9',supplier:'Dell Vietnam',cat:'CNTT',project:'Data Center HCM',price:185000000,qty:1,vat:10,date:'2026-05-05',expiry:'2026-06-05',status:'Hết hạn',note:'Hết hạn báo giá'},
   {id:8,device:'Máy chủ Rack 2U',model:'PowerEdge R740',brand:'Dell',origin:'Mỹ',spec:'2x Xeon Gold 6226R, 128GB RAM ECC, 4x 2.4TB SAS 10K, PERC H730P',supplier:'NetViet Distribution',cat:'CNTT',project:'Data Center HCM',price:179000000,qty:1,vat:10,date:'2026-05-14',expiry:'2026-08-14',status:'Đã duyệt',note:'Bảo hành 3 năm onsite next-business-day'},
   {id:9,device:'Cáp quang OM4 LC-LC',model:'OM4-DUPLEX-LC-3M',brand:'CommScope',origin:'Mỹ',spec:'OM4 50/125, LC-LC Duplex, 3 mét, LSZH jacket, màu tím',supplier:'CableVN',cat:'Mạng',project:'Hạ tầng mạng Q4 2026',price:350000,qty:50,vat:10,date:'2026-05-18',expiry:'2026-09-18',status:'Mới',note:''},
   {id:10,device:'Điều hoà Cassette 4HP',model:'FCQ100KAVEA',brand:'Daikin',origin:'Thái Lan',spec:'4HP, 34.000 BTU, Inverter, 3 pha, R32, COP 3.7, điều khiển từ xa không dây',supplier:'Điện máy Sài Gòn',cat:'Điện',project:'Văn phòng tầng 5',price:42500000,qty:4,vat:10,date:'2026-05-20',expiry:'2026-08-20',status:'Chờ duyệt',note:'Lắp đặt tính phí riêng 2tr/máy'},
   {id:11,device:'Firewall NGFW',model:'PA-850',brand:'Palo Alto',origin:'Mỹ',spec:'Throughput 2.1Gbps, 64000 sessions, App-ID, URL Filtering, WildFire sandbox',supplier:'CyberSec VN',cat:'Mạng',project:'Data Center HCM',price:285000000,qty:1,vat:10,date:'2026-05-22',expiry:'2026-08-22',status:'Chờ duyệt',note:'Gồm license 1 năm Threat Prevention'},
-  {id:12,device:'Tủ mạng Rack 42U',model:'NetShelter SX 42U',brand:'APC',origin:'Mỹ',spec:'42U, 600x1070mm, 1500kg load, broom broom, side panels, cửa kính phía trước',supplier:'Công ty TNHH Minh Khang',cat:'Cơ sở hạ tầng',project:'Data Center HCM',price:28500000,qty:2,vat:10,date:'2026-05-15',expiry:'2026-08-15',status:'Đã duyệt',note:''}
+  {id:12,device:'Tủ mạng Rack 42U',model:'NetShelter SX 42U',brand:'APC',origin:'Mỹ',spec:'42U, 600x1070mm, 1500kg load, side panels, cửa kính phía trước',supplier:'Công ty TNHH Minh Khang',cat:'Cơ sở hạ tầng',project:'Data Center HCM',price:28500000,qty:2,vat:10,date:'2026-05-15',expiry:'2026-08-15',status:'Đã duyệt',note:'Giao hàng kèm lắp đặt'},
 ];
 
-let nextId = 13;
-let editId = null;
-let currentView = 'all';
-let sortField = 'device';
-let sortAsc = true;
+let nextId = 13, editId = null, sortField = null, sortAsc = true;
 let chartInsts = {};
-const today = new Date().toISOString().split('T')[0];
 
-const COLORS = ['#1e6bdc','#0fa968','#e8940a','#e03e3e','#6c63ff','#00ced1','#ff1493','#4b0082','#ffa500','#7fff00'];
+const today = new Date().toISOString().slice(0,10);
+const fmt = n => new Intl.NumberFormat('vi-VN').format(Math.round(n));
+const fmtM = n => (Math.round(n/100000)/10).toFixed(1);
+const COLORS = ['#1e6bdc','#0fa968','#e8940a','#e03e3e','#6c63ff','#0891b2','#d97706','#7c3aed','#059669','#dc2626'];
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fDate').value = today;
-  refresh();
-  window.addEventListener('resize', () => {
-    const btn = document.getElementById('menuBtn');
-    if(window.innerWidth > 900) { document.getElementById('sidebar').classList.remove('open'); btn.style.display='none'; }
-    else { btn.style.display='inline-flex'; }
-  });
-  if(window.innerWidth <= 900) document.getElementById('menuBtn').style.display='inline-flex';
-});
-
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-function refresh() { populateFilters(); renderMetrics(); renderTable(); }
-
-function switchView(view, btn) {
-  currentView = view;
-  if(btn) {
-    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  
-  const titles = {all:'Tất cả báo giá', supplier:'Báo giá theo nhà cung cấp', project:'Báo giá theo dự án', chart:'Biểu đồ phân tích'};
-  const subs = {
-    all:'Quản lý và so sánh giá từ các nhà cung cấp',
-    supplier:'Xem tổng quan năng lực và danh mục hàng hóa của từng NCC',
-    project:'Theo dõi ngân sách và thiết bị được phân bổ cho từng dự án',
-    chart:'Phân tích trực quan chênh lệch giá và phân bổ ngân sách'
-  };
-  
-  document.getElementById('topTitle').textContent = titles[view];
-  document.getElementById('topSub').textContent = subs[view];
-  
-  ['all','supplier','project','chart'].forEach(v => {
-    document.getElementById(`view-${v}`).style.display = v===view ? 'block' : 'none';
-  });
-  
-  if(view==='supplier') renderSupplierView();
-  if(view==='project') renderProjectView();
-  if(view==='chart') renderCharts();
-  if(window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+// ── Price input helpers (FIX CHÍNH) ──────────────────────────────────────────
+// Làm sạch chuỗi giá: loại bỏ mọi ký tự không phải số
+function cleanPriceStr(str) {
+  return String(str || '').replace(/[^\d]/g, '');
 }
 
-// ── Filters & Populating ──
+// Parse giá an toàn từ bất kỳ định dạng nào
+function parsePrice(val) {
+  const cleaned = cleanPriceStr(val);
+  if (!cleaned) return NaN;
+  return parseInt(cleaned, 10);
+}
+
+// Hiển thị preview giá khi người dùng gõ
+function formatPriceInput(el) {
+  const raw = cleanPriceStr(el.value);
+  const num = parseInt(raw, 10);
+  const preview = document.getElementById('pricePreview');
+  if (raw && !isNaN(num) && num > 0) {
+    preview.textContent = '→ ' + fmt(num) + ' đồng';
+    preview.style.color = 'var(--primary)';
+    el.style.borderColor = '';
+  } else if (raw && raw !== '') {
+    preview.textContent = 'Giá trị không hợp lệ';
+    preview.style.color = 'var(--danger)';
+  } else {
+    preview.textContent = '';
+    el.style.borderColor = '';
+  }
+}
+
+function formatPriceBlur(el) {
+  // Khi blur, giữ nguyên raw value để không nhầm lẫn
+  formatPriceInput(el);
+}
+
+// Lấy giá trị số từ input giá
+function getPriceValue() {
+  return parsePrice(document.getElementById('fPrice').value);
+}
+
+// Set giá trị vào input (dùng khi edit)
+function setPriceValue(num) {
+  const el = document.getElementById('fPrice');
+  el.value = num ? String(num) : '';
+  formatPriceInput(el);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Navigation ──
+function switchView(view, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.querySelectorAll('[id^="view-"]').forEach(v => v.style.display = 'none');
+  document.getElementById('view-' + view).style.display = '';
+  const titles = {all:'Tất cả báo giá', supplier:'Nhà cung cấp', project:'Theo dự án', chart:'Biểu đồ phân tích'};
+  document.getElementById('topTitle').textContent = titles[view] || view;
+  if(view === 'supplier') renderSupplierView();
+  if(view === 'project') renderProjectView();
+  if(view === 'chart') setTimeout(renderCharts, 60);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── Filters ──
+function getFiltered() {
+  const s = document.getElementById('searchInput').value.toLowerCase();
+  const sup = document.getElementById('fSupplier').value;
+  const proj = document.getElementById('filterProject').value;
+  const cat = document.getElementById('fCat').value;
+  const brand = document.getElementById('filterBrand').value;
+  const st = document.getElementById('filterStatus').value;
+  let f = data.filter(r =>
+    (!s || [r.device,r.model,r.brand,r.supplier,r.project,r.spec,r.note].some(v=>(v||'').toLowerCase().includes(s))) &&
+    (!sup || r.supplier === sup) &&
+    (!proj || r.project === proj) &&
+    (!cat || r.cat === cat) &&
+    (!brand || r.brand === brand) &&
+    (!st || r.status === st)
+  );
+  if(sortField) {
+    f.sort((a,b) => {
+      let va = sortField==='total' ? a.price*a.qty : a[sortField];
+      let vb = sortField==='total' ? b.price*b.qty : b[sortField];
+      if(typeof va === 'string') va = va.toLowerCase();
+      if(typeof vb === 'string') vb = vb.toLowerCase();
+      return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+  }
+  return f;
+}
+
 function clearFilters() {
-  ['fSupplier','fProject','fCat','fBrand','fStatus'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('searchInput').value = '';
+  ['fSupplier','filterProject','fCat','filterBrand','filterStatus'].forEach(id => document.getElementById(id).value = '');
   renderTable();
 }
 
@@ -709,11 +780,10 @@ function populateFilters() {
     el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${v===cur?' selected':''}>${v}</option>`).join('');
   };
   fill('fSupplier', uniq(data,'supplier'), 'Tất cả NCC');
-  fill('fProject', uniq(data,'project'), 'Tất cả dự án');
+  fill('filterProject', uniq(data,'project'), 'Tất cả dự án');
   fill('fCat', uniq(data,'cat'), 'Tất cả danh mục');
-  fill('fBrand', uniq(data,'brand'), 'Tất cả thương hiệu');
+  fill('filterBrand', uniq(data,'brand'), 'Tất cả thương hiệu');
 
-  // datalists
   const dl = (id, vals) => { document.getElementById(id).innerHTML = vals.map(v=>`<option value="${v}">`).join(''); };
   dl('supplierList', uniq(data,'supplier'));
   dl('deviceList', uniq(data,'device'));
@@ -723,6 +793,8 @@ function populateFilters() {
 
 // ── Metrics ──
 function renderMetrics() {
+  const total = data.reduce((s,r)=>s+r.price*r.qty,0);
+  const totalVat = data.reduce((s,r)=>s+r.price*r.qty*(1+(r.vat||0)/100),0);
   const approved = data.filter(r=>r.status==='Đã duyệt').length;
   const pending = data.filter(r=>r.status==='Chờ duyệt').length;
   const expired = data.filter(r=>r.expiry && r.expiry < today).length;
@@ -760,82 +832,46 @@ function renderMetrics() {
       <div class="metric-val">${suppliers}</div>
       <div class="metric-sub">${projects} dự án</div>
     </div>
+    <div class="metric-card">
+      <div class="metric-icon" style="background:#f0fdf4;color:#16a34a"><i class="fas fa-coins"></i></div>
+      <div class="metric-label">Tổng giá trị</div>
+      <div class="metric-val" style="font-size:16px">${fmtM(total)}M</div>
+      <div class="metric-sub">Có VAT: ${fmtM(totalVat)}M</div>
+    </div>
   `;
 }
 
-// ── Main Table ──
-function getFiltered() {
-  const search = document.getElementById('searchInput').value.toLowerCase().trim();
-  const fSup = document.getElementById('fSupplier').value;
-  const fProj = document.getElementById('fProject').value;
-  const fCat = document.getElementById('fCat').value;
-  const fBrand = document.getElementById('fBrand').value;
-  const fStat = document.getElementById('fStatus').value;
+// ── Table ──
+function statusBadge(s) {
+  const m = {'Đã duyệt':'badge-success','Chờ duyệt':'badge-warning','Hết hạn':'badge-danger','Mới':'badge-gray'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${s}</span>`;
+}
 
-  return data.filter(r => {
-    if(fSup && r.supplier !== fSup) return false;
-    if(fProj && r.project !== fProj) return false;
-    if(fCat && r.cat !== fCat) return false;
-    if(fBrand && r.brand !== fBrand) return false;
-    if(fStat && r.status !== fStat) return false;
-    if(search) {
-      const match = (r.device||'').toLowerCase().includes(search) ||
-                    (r.model||'').toLowerCase().includes(search) ||
-                    (r.supplier||'').toLowerCase().includes(search) ||
-                    (r.project||'').toLowerCase().includes(search) ||
-                    (r.brand||'').toLowerCase().includes(search) ||
-                    (r.spec||'').toLowerCase().includes(search);
-      if(!match) return false;
-    }
-    return true;
-  });
+function supColor(name) {
+  let h = 0; for(let c of name) h = (h*31+c.charCodeAt(0))&0xffff;
+  return COLORS[h%COLORS.length];
 }
 
 function renderTable() {
-  let rows = getFiltered();
-  document.getElementById('tableCount').textContent = `${rows.length} mục tìm thấy`;
-  
-  if(!rows.length) {
-    document.getElementById('tableBody').innerHTML = '';
-    document.getElementById('emptyState').style.display = 'block';
-    return;
-  }
-  document.getElementById('emptyState').style.display = 'none';
+  const rows = getFiltered();
+  const tb = document.getElementById('tableBody');
+  document.getElementById('tableCount').textContent = `${rows.length} / ${data.length} mục`;
+  document.getElementById('emptyState').style.display = rows.length ? 'none' : 'block';
+  if(!rows.length) { tb.innerHTML = ''; return; }
 
-  // Sort
-  rows.sort((a,b) => {
-    let va = a[sortField], vb = b[sortField];
-    if(typeof va === 'string') {
-      return sortAsc ? va.localeCompare(vb, 'vi') : vb.localeCompare(va, 'vi');
-    }
-    if(sortField === 'total') { va=a.price*a.qty; vb=b.price*b.qty; }
-    return sortAsc ? va - vb : vb - va;
-  });
+  const bestPrice = {};
+  data.forEach(r => { if(!bestPrice[r.device]||r.price<bestPrice[r.device]) bestPrice[r.device]=r.price; });
 
-  // Tìm giá tốt nhất theo từng thiết bị
-  const bestPrices = {};
-  data.forEach(r => {
-    if(!bestPrices[r.device] || r.price < bestPrices[r.device]) {
-      bestPrices[r.device] = r.price;
-    }
-  });
-
-  const sups = [...new Set(data.map(r=>r.supplier))].sort();
-  const supColor = (s) => COLORS[sups.indexOf(s) % COLORS.length];
-
-  document.getElementById('tableBody').innerHTML = rows.map((r,i) => {
+  tb.innerHTML = rows.map((r,i) => {
     const total = r.price * r.qty;
-    const bestP = bestPrices[r.device];
-    const isBest = r.price === bestP;
-    const diffPct = bestP ? Math.round(((r.price - bestP)/bestP)*100) : 0;
-    
-    let diffHtml = isBest ? '<br><span class="price-best"><i class="fas fa-star"></i> Giá tốt nhất</span>' : '';
-    if(!isBest && diffPct > 0) diffHtml = `<br><span class="price-up">+${diffPct}% so với tốt nhất</span>`;
-    
+    const isBest = r.price === bestPrice[r.device];
+    const diffPct = bestPrice[r.device] ? Math.round((r.price-bestPrice[r.device])/bestPrice[r.device]*100) : 0;
+    const diffHtml = isBest
+      ? `<br><span class="price-best"><i class="fas fa-star"></i> Giá tốt nhất</span>`
+      : diffPct > 0 ? `<br><span class="price-up">+${diffPct}% so với tốt nhất</span>` : '';
     const isExpired = r.expiry && r.expiry < today;
     const color = supColor(r.supplier);
     const specShort = r.spec ? (r.spec.length > 50 ? r.spec.slice(0,50)+'…' : r.spec) : '—';
-
     return `<tr class="${isBest?'best-row':''}">
       <td style="color:var(--text3);font-size:12px">${i+1}</td>
       <td><div style="font-weight:600;font-size:13px">${r.device}</div>${r.project?`<span class="project-tag" style="margin-top:3px;display:inline-block">${r.project}</span>`:''}</td>
@@ -863,12 +899,11 @@ function renderTable() {
   }).join('');
 }
 
-// ── Sort Event ──
+// ── Sort ──
 document.querySelectorAll('th.sortable').forEach(th => {
   th.addEventListener('click', () => {
     const f = th.dataset.field;
-    if(sortField===f) sortAsc=!sortAsc;
-    else {sortField=f;sortAsc=true;}
+    if(sortField===f) sortAsc=!sortAsc; else {sortField=f;sortAsc=true;}
     document.querySelectorAll('th.sortable').forEach(t=>t.classList.remove('sorted'));
     th.classList.add('sorted');
     th.querySelector('.sort-icon').className = `fas fa-sort-${sortAsc?'up':'down'} sort-icon`;
@@ -881,29 +916,30 @@ function viewDetail(id) {
   const r = data.find(d=>d.id===id);
   if(!r) return;
   document.getElementById('detailTitle').textContent = r.device;
-  document.getElementById('detailSub').textContent = `${r.brand} · ${r.model} · ${r.supplier}`;
+  document.getElementById('detailSub').textContent = `${r.brand||''} · ${r.model||''} · ${r.supplier}`;
   document.getElementById('detailEditBtn').onclick = () => { closeDetail(); editEntry(id); };
 
+  const color = supColor(r.supplier);
   const total = r.price * r.qty;
   document.getElementById('detailBody').innerHTML = `
     <div class="detail-grid">
       <div class="detail-item"><label>Model</label><div class="val mono">${r.model||'—'}</div></div>
       <div class="detail-item"><label>Thương hiệu</label><div class="val">${r.brand||'—'}</div></div>
       <div class="detail-item"><label>Xuất xứ</label><div class="val">${r.origin||'—'}</div></div>
-      <div class="detail-item" style="grid-column:1/-1"><label>Thông số kỹ thuật</label><div class="val" style="line-height:1.7;color:var(--text2)">${r.spec||'—'}</div></div>
-      <div class="detail-item"><label>Nhà cung cấp</label><div class="val" style="font-weight:600">${r.supplier}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><label>Thông số kỹ thuật</label><div class="val" style="line-height:1.7;color:var(--text2)">${r.spec||'Chưa có thông tin'}</div></div>
+      <div class="detail-item"><label>Nhà cung cấp</label><div class="val"><span class="sup-chip" style="background:${color}18;color:${color}">${r.supplier}</span></div></div>
       <div class="detail-item"><label>Danh mục</label><div class="val">${r.cat}</div></div>
       <div class="detail-item"><label>Dự án</label><div class="val">${r.project||'—'}</div></div>
-      <div class="detail-item"><label>Đơn giá</label><div class="val mono" style="font-weight:600;color:var(--primary)">${fmt(r.price)}đ</div></div>
+      <div class="detail-item"><label>Đơn giá</label><div class="val mono" style="font-size:16px;font-weight:700;color:var(--primary)">${fmt(r.price)}đ</div></div>
       <div class="detail-item"><label>Số lượng</label><div class="val">${r.qty}</div></div>
-      <div class="detail-item"><label>VAT</label><div class="val">${r.vat}%</div></div>
-      <div class="detail-item"><label>Thành tiền (Chưa VAT)</label><div class="val mono" style="font-weight:700">${fmt(total)}đ</div></div>
-      <div class="detail-item" style="grid-column:span 2"><label>Tổng chi phí (Có VAT)</label><div class="val mono" style="font-weight:700;color:var(--success);font-size:15px">${fmt(total*(1+r.vat/100))}đ</div></div>
+      <div class="detail-item"><label>VAT</label><div class="val">${r.vat||0}%</div></div>
+      <div class="detail-item"><label>Thành tiền (chưa VAT)</label><div class="val mono" style="font-weight:700">${fmt(total)}đ</div></div>
+      <div class="detail-item"><label>Thành tiền (có VAT)</label><div class="val mono" style="font-weight:700;color:var(--success)">${fmt(total*(1+(r.vat||0)/100))}đ</div></div>
       <div class="detail-item"><label>Trạng thái</label><div class="val">${statusBadge(r.status)}</div></div>
       <div class="detail-item"><label>Ngày báo giá</label><div class="val">${r.date}</div></div>
-      <div class="detail-item"><label>Ngày hết hạn</label><div class="val">${r.expiry||'—'}</div></div>
+      <div class="detail-item"><label>Hết hạn</label><div class="val" style="color:${r.expiry&&r.expiry<today?'var(--danger)':'inherit'}">${r.expiry||'—'}</div></div>
     </div>
-    ${r.note ? `<div class="detail-note"><strong>Ghi chú:</strong> ${r.note}</div>` : ''}
+    ${r.note ? `<div class="detail-note"><i class="fas fa-note-sticky" style="margin-right:6px"></i>${r.note}</div>` : ''}
   `;
   document.getElementById('detailOverlay').classList.add('open');
 }
@@ -911,29 +947,23 @@ function closeDetail() { document.getElementById('detailOverlay').classList.remo
 
 // ── Supplier view ──
 function renderSupplierView() {
-  const sups = [...new Set(data.map(r=>r.supplier))].sort();
-  if(!sups.length) {
-    document.getElementById('supplierView').innerHTML = '<div class="empty-state"><i class="fas fa-building-circle-exclamation"></i><h3>Chưa có nhà cung cấp nào</h3></div>';
-    return;
-  }
+  const suppliers = [...new Set(data.map(r=>r.supplier))].sort();
   document.getElementById('supplierView').innerHTML = `
     <div class="supplier-grid">
-      ${sups.map((sup,i) => {
+      ${suppliers.map((sup) => {
         const items = data.filter(r=>r.supplier===sup);
         const total = items.reduce((s,r)=>s+r.price*r.qty,0);
-        const totalVat = items.reduce((s,r)=>s+r.price*r.qty*(1+(r.vat||0)/100),0);
-        const color = COLORS[i%COLORS.length];
+        const color = supColor(sup);
         return `<div class="supplier-card">
           <div class="supplier-card-header">
             <div class="supplier-avatar" style="background:${color}18;color:${color}">${sup[0].toUpperCase()}</div>
             <div>
               <div class="supplier-name">${sup}</div>
-              <div class="supplier-meta">${items.length} thiết bị báo giá · ${[...new Set(items.map(r=>r.cat))].join(', ')}</div>
+              <div class="supplier-meta">${items.length} thiết bị · ${[...new Set(items.map(r=>r.project).filter(Boolean))].length} dự án</div>
             </div>
             <div class="supplier-total">
-              <div class="supplier-total-lbl">Chưa VAT</div>
-              <div class="supplier-total-val" style="color:${color}">${fmtM(total)}M</div>
-              <div class="supplier-total-lbl">Có VAT: ${fmtM(totalVat)}M</div>
+              <div class="supplier-total-lbl">Tổng giá trị</div>
+              <div class="supplier-total-val" style="color:${color}">${fmtM(total)}M đ</div>
             </div>
           </div>
           <table class="mini-table">
@@ -1003,129 +1033,188 @@ function destroyCharts() {
 
 function renderCharts() {
   destroyCharts();
-  
-  // Biểu đồ so sánh giá
+
   const devMulti = [...new Set(data.map(r=>r.device))].filter(d=>data.filter(r=>r.device===d).length>1);
   const suppliers = [...new Set(data.map(r=>r.supplier))].sort();
   const datasets = suppliers.map((sup,i)=>({
     label: sup, borderWidth:1,
-    data: devMulti.map(dev=>{
-      const e=data.find(r=>r.supplier===sup&&r.device===dev);
-      return e?Math.round(e.price/1000000):null;
-    }),
+    data: devMulti.map(dev=>{ const e=data.find(r=>r.supplier===sup&&r.device===dev); return e?Math.round(e.price/1000000):null; }),
     backgroundColor: COLORS[i%COLORS.length]+'99',
     borderColor: COLORS[i%COLORS.length],
   }));
-
   document.getElementById('chartLegend').innerHTML = suppliers.map((s,i)=>
-    `<span class="legend-item"><span class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></span>${s}</span>`
-  ).join('');
-
+    `<span class="legend-item"><span class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></span>${s}</span>`).join('');
   chartInsts.price = new Chart(document.getElementById('priceChart'),{
-    type:'bar', data:{ labels: devMulti.map(d=>d.length>18?d.slice(0,16)+'…':d), datasets },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Triệu VNĐ'}}}}
+    type:'bar',
+    data:{labels:devMulti.map(d=>d.length>20?d.slice(0,20)+'…':d), datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},autoSkip:false,maxRotation:30}},y:{ticks:{callback:v=>`${v}M`}}}}
   });
 
-  // Biểu đồ theo nhà cung cấp
-  const supVals = suppliers.map(s => Math.round(data.filter(r=>r.supplier===s).reduce((sum,r)=>sum+r.price*r.qty,0)/1000000));
-  chartInsts.sup = new Chart(document.getElementById('supplierChart'),{
-    type:'bar', data:{ labels: suppliers.map(s=>s.length>12?s.slice(0,10)+'…':s), datasets:[{data:supVals,backgroundColor:COLORS.map(c=>c+'cc'),borderWidth:0}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  const supData = suppliers.map(s=>({name:s,total:data.filter(r=>r.supplier===s).reduce((a,r)=>a+r.price*r.qty,0)})).sort((a,b)=>b.total-a.total);
+  chartInsts.supplier = new Chart(document.getElementById('supplierChart'),{
+    type:'bar',
+    data:{labels:supData.map(s=>s.name.length>15?s.name.slice(0,15)+'…':s.name),
+      datasets:[{data:supData.map(s=>Math.round(s.total/1000000)),backgroundColor:supData.map((_,i)=>COLORS[i%COLORS.length]+'bb'),borderColor:supData.map((_,i)=>COLORS[i%COLORS.length]),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{callback:v=>`${v}M`}}}}
   });
 
-  // Biểu đồ theo danh mục
-  const cats = [...new Set(data.map(r=>r.cat))].sort();
-  const catCounts = cats.map(c => data.filter(r=>r.cat===c).length);
+  const cats = [...new Set(data.map(r=>r.cat))];
   chartInsts.cat = new Chart(document.getElementById('catChart'),{
-    type:'doughnut', data:{ labels: cats, datasets:[{data:catCounts,backgroundColor:COLORS,borderWidth:0}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+    type:'doughnut',
+    data:{labels:cats, datasets:[{data:cats.map(c=>data.filter(r=>r.cat===c).length),backgroundColor:cats.map((_,i)=>COLORS[i%COLORS.length]+'cc'),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
   });
 
-  // Biểu đồ theo dự án
-  const projs = [...new Set(data.map(r=>r.project).filter(Boolean))].sort();
-  const projVals = projs.map(p => Math.round(data.filter(r=>r.project===p).reduce((sum,r)=>sum+r.price*r.qty,0)/1000000));
-  chartInsts.proj = new Chart(document.getElementById('projectChart'),{
-    type:'pie', data:{ labels: projs, datasets:[{data:projVals,backgroundColor:COLORS,borderWidth:0}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+  const projs = [...new Set(data.map(r=>r.project).filter(Boolean))];
+  const projData = projs.map(p=>({name:p,total:data.filter(r=>r.project===p).reduce((a,r)=>a+r.price*r.qty,0)})).sort((a,b)=>b.total-a.total);
+  chartInsts.project = new Chart(document.getElementById('projectChart'),{
+    type:'bar',
+    data:{labels:projData.map(p=>p.name.length>18?p.name.slice(0,18)+'…':p.name),
+      datasets:[{data:projData.map(p=>Math.round(p.total/1000000)),backgroundColor:projData.map((_,i)=>COLORS[(i+3)%COLORS.length]+'bb'),borderWidth:1,borderColor:projData.map((_,i)=>COLORS[(i+3)%COLORS.length])}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{callback:v=>`${v}M`}}}}
   });
 
-  // Biểu đồ theo thương hiệu
-  const brands = [...new Set(data.map(r=>r.brand).filter(Boolean))].sort();
-  const brandCounts = brands.map(b => data.filter(r=>r.brand===b).length);
+  const brands = [...new Set(data.map(r=>r.brand).filter(Boolean))];
   chartInsts.brand = new Chart(document.getElementById('brandChart'),{
-    type:'polarArea', data:{ labels: brands, datasets:[{data:brandCounts,backgroundColor:COLORS.map(c=>c+'88'),borderWidth:1,borderColor:'#fff'}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}}} }
+    type:'pie',
+    data:{labels:brands, datasets:[{data:brands.map(b=>data.filter(r=>r.brand===b).length),backgroundColor:brands.map((_,i)=>COLORS[(i+2)%COLORS.length]+'cc'),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
   });
 }
 
-// ── Modals Trigger ──
-function openModal(row=null) {
-  editId = row ? row.id : null;
-  document.getElementById('modalTitle').textContent = row ? 'Chỉnh sửa báo giá' : 'Thêm báo giá mới';
-  
-  const fields = ['Device','Model','Brand','Origin','Spec','Supplier','Project','Price','Qty','Vat','Date','Expiry','Status'];
-  if(row) {
-    fields.forEach(f => {
-      const el = document.getElementById(`f${f}`);
-      if(el) el.value = row[f.toLowerCase()] || (f==='Vat'||f==='Qty'?0:'');
-    });
-    document.getElementById('fCatF').value = row.cat;
-    document.getElementById('fNote').value = row.note || '';
+// ── Modal ──
+function openModal(prefill) {
+  editId = null;
+  document.getElementById('modalTitle').textContent = prefill ? 'Sửa báo giá' : 'Thêm báo giá mới';
+  // Reset price preview
+  document.getElementById('pricePreview').textContent = '';
+
+  if(prefill) {
+    editId = prefill.id;
+    document.getElementById('fDevice').value = prefill.device || '';
+    document.getElementById('fModel').value = prefill.model || '';
+    document.getElementById('fBrand').value = prefill.brand || '';
+    document.getElementById('fOrigin').value = prefill.origin || '';
+    document.getElementById('fSpec').value = prefill.spec || '';
+    document.getElementById('fSupplierInput').value = prefill.supplier || '';
+    document.getElementById('fProject').value = prefill.project || '';
+    document.getElementById('fQty').value = prefill.qty || 1;
+    document.getElementById('fVat').value = prefill.vat !== undefined ? prefill.vat : 10;
+    document.getElementById('fDate').value = prefill.date || '';
+    document.getElementById('fExpiry').value = prefill.expiry || '';
+    document.getElementById('fStatus').value = prefill.status || 'Mới';
+    document.getElementById('fNote').value = prefill.note || '';
+    document.getElementById('fCatF').value = prefill.cat || 'Điện';
+    // Set price và hiển thị preview
+    setPriceValue(prefill.price);
   } else {
-    ['fDevice','fModel','fBrand','fOrigin','fSpec','fSupplier','fProject','fNote'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('fPrice').value = '';
-    document.getElementById('fQty').value = '1';
-    document.getElementById('fVat').value = '10';
+    document.getElementById('fDevice').value = '';
+    document.getElementById('fModel').value = '';
+    document.getElementById('fBrand').value = '';
+    document.getElementById('fOrigin').value = '';
+    document.getElementById('fSpec').value = '';
+    document.getElementById('fSupplierInput').value = '';
+    document.getElementById('fProject').value = '';
+    document.getElementById('fQty').value = 1;
+    document.getElementById('fVat').value = 10;
     document.getElementById('fDate').value = today;
     document.getElementById('fExpiry').value = '';
     document.getElementById('fStatus').value = 'Mới';
-    document.getElementById('fCatF').selectedIndex = 0;
+    document.getElementById('fNote').value = '';
+    document.getElementById('fCatF').value = 'Điện';
+    document.getElementById('fPrice').value = '';
   }
   document.getElementById('modalOverlay').classList.add('open');
+  // Focus vào tên thiết bị
+  setTimeout(() => document.getElementById('fDevice').focus(), 100);
 }
 
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
-function editEntry(id) { const r=data.find(d=>d.id===id); if(r) openModal(r); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editId = null;
+}
 
-// ── SỬA LỖI KIỂM TRA ĐẦU VÀO TẠI ĐÂY ──
+function handleOverlayClick(e) {
+  if(e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function editEntry(id) {
+  const r = data.find(d=>d.id===id);
+  if(r) openModal(r);
+}
+
+// ── SAVE ENTRY (ĐÃ FIX LỖI) ──────────────────────────────────────────────────
 function saveEntry() {
   const device = document.getElementById('fDevice').value.trim();
-  const supplier = document.getElementById('fSupplier').value.trim();
-  const priceRaw = document.getElementById('fPrice').value;
-  const price = parseFloat(priceRaw);
-  const model = document.getElementById('fModel').value.trim();
-  const brand = document.getElementById('fBrand').value.trim();
+  const supplier = document.getElementById('fSupplierInput').value.trim();
 
-  // Kiểm tra chuỗi trống hoặc giá trị số không hợp lệ (NaN)
-  if(!device || !supplier || !model || !brand || isNaN(price) || priceRaw === "") {
-    showToast('Vui lòng nhập đủ thông tin bắt buộc (*)', 'error');
+  // FIX: Làm sạch và parse giá đúng cách
+  // Loại bỏ dấu chấm, phẩy, khoảng trắng và ký tự không phải số trước khi parse
+  const price = parsePrice(document.getElementById('fPrice').value);
+
+  // Validate từng trường và hiển thị lỗi rõ ràng
+  const missing = [];
+  if (!device) missing.push('Tên thiết bị');
+  if (!supplier) missing.push('Nhà cung cấp');
+  if (isNaN(price) || price <= 0) missing.push('Đơn giá (nhập số dương, VD: 45000000)');
+
+  if (missing.length > 0) {
+    showToast('Thiếu thông tin: ' + missing.join(' · '), 'error');
+    // Highlight field bị thiếu
+    if (!device) highlightError('fDevice');
+    if (!supplier) highlightError('fSupplierInput');
+    if (isNaN(price) || price <= 0) highlightError('fPrice');
     return;
   }
 
+  const qty = Math.max(1, parseInt(document.getElementById('fQty').value) || 1);
+  const vat = parseFloat(document.getElementById('fVat').value) || 0;
+
   const entry = {
     id: editId || nextId++,
-    device, model, brand,
+    device,
+    model: document.getElementById('fModel').value.trim(),
+    brand: document.getElementById('fBrand').value.trim(),
     origin: document.getElementById('fOrigin').value,
     spec: document.getElementById('fSpec').value.trim(),
     supplier,
     cat: document.getElementById('fCatF').value,
     project: document.getElementById('fProject').value.trim(),
-    price,
-    qty: parseInt(document.getElementById('fQty').value)||1,
-    vat: parseFloat(document.getElementById('fVat').value)||0,
-    date: document.getElementById('fDate').value||today,
-    expiry: document.getElementById('fExpiry').value||'',
+    price,   // giá trị số sạch
+    qty,
+    vat,
+    date: document.getElementById('fDate').value || today,
+    expiry: document.getElementById('fExpiry').value || '',
     status: document.getElementById('fStatus').value,
     note: document.getElementById('fNote').value.trim()
   };
 
-  if(editId) data = data.map(d=>d.id===editId?entry:d);
-  else data.push(entry);
+  if (editId) {
+    data = data.map(d => d.id === editId ? entry : d);
+  } else {
+    data.push(entry);
+  }
 
   closeModal();
   refresh();
   showToast(editId ? 'Đã cập nhật báo giá!' : 'Đã thêm báo giá mới!', 'success');
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function highlightError(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.style.borderColor = 'var(--danger)';
+  el.style.boxShadow = '0 0 0 3px rgba(224,62,62,0.12)';
+  el.focus();
+  el.addEventListener('input', function clearErr() {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    el.removeEventListener('input', clearErr);
+  }, { once: true });
 }
 
 function deleteEntry(id) {
@@ -1135,85 +1224,100 @@ function deleteEntry(id) {
   showToast('Đã xoá báo giá.', 'success');
 }
 
-// ── Export Utilities ──
+// ── Export ──
 function exportCSV() {
   const rows = getFiltered();
   const hdr = ['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số KT','Nhà cung cấp','Danh mục','Dự án','Đơn giá','Số lượng','VAT(%)','Thành tiền','Có VAT','Trạng thái','Ngày báo','Hết hạn','Ghi chú'];
-  const lines = [hdr.join(','), ...rows.map((r,i)=>[
-    i+1, r.device, r.model, r.brand, r.origin, (r.spec||'').replace(/,/g,';'), r.supplier, r.cat, r.project, r.price, r.qty, r.vat, r.price*r.qty, r.price*r.qty*(1+r.vat/100), r.status, r.date, r.expiry, (r.note||'').replace(/,/g,';')
-  ].map(v=>`"${v}"`).join(','))];
-  dlBlob(lines.join('\r\n'), 'Bao_gia_thiet_bi.csv', 'text/csv;charset=utf-8;');
+  const lines = [hdr.join(','),...rows.map((r,i)=>[
+    i+1,r.device,r.model,r.brand,r.origin,r.spec,r.supplier,r.cat,r.project,
+    r.price,r.qty,r.vat,r.price*r.qty,Math.round(r.price*r.qty*(1+(r.vat||0)/100)),
+    r.status,r.date,r.expiry||'',r.note||''
+  ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','))];
+  const blob = new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  triggerDownload(blob,'bao-gia-thiet-bi.csv');
+  showToast('Đã xuất file CSV!', 'success');
 }
 
 function exportExcel() {
   const rows = getFiltered();
-  const dataAOA = [['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp','Danh mục','Dự án','Đơn giá (VNĐ)','Số lượng','VAT (%)','Thành tiền','Tổng (gồm VAT)','Trạng thái','Ngày báo','Hết hạn','Ghi chú']];
-  rows.forEach((r,i)=>{
-    const tt = r.price*r.qty;
-    dataAOA.push([i+1,r.device,r.model,r.brand,r.origin,r.spec,r.supplier,r.cat,r.project,r.price,r.qty,r.vat,tt,tt*(1+r.vat/100),r.status,r.date,r.expiry,r.note]);
-  });
+  const hdr = ['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp','Danh mục','Dự án','Đơn giá (VNĐ)','Số lượng','VAT (%)','Thành tiền','Có VAT','Trạng thái','Ngày báo giá','Hết hạn','Ghi chú'];
+  const wsData = [hdr,...rows.map((r,i)=>[
+    i+1,r.device,r.model,r.brand,r.origin,r.spec,r.supplier,r.cat,r.project||'',
+    r.price,r.qty,r.vat||0,r.price*r.qty,Math.round(r.price*r.qty*(1+(r.vat||0)/100)),
+    r.status,r.date,r.expiry||'',r.note||''
+  ])];
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(dataAOA);
-  XLSX.utils.book_append_sheet(wb, ws, 'Báo Giá');
-  XLSX.writeFile(wb, 'Bao_gia_thiet_bi.xlsx');
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = hdr.map((_,i)=>({wch:[5,20,14,12,8,40,20,10,18,14,6,6,14,14,10,10,10,30][i]||12}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Báo giá');
+  XLSX.writeFile(wb, 'bao-gia-thiet-bi.xlsx');
+  showToast('Đã xuất file Excel!', 'success');
 }
 
-// ── Import Utilities ──
+// ── Import ──
 function openImport() { document.getElementById('importOverlay').classList.add('open'); }
 function closeImport() { document.getElementById('importOverlay').classList.remove('open'); }
 
 function handleImport(e) {
-  const f = e.target.files[0]; if(!f) return;
-  const rdr = new FileReader();
-  rdr.onload = function(evt) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
     try {
-      const dataBin = evt.target.result;
-      const wb = XLSX.read(dataBin, {type:'binary'});
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1});
-      if(rows.length <= 1) { showToast('File trống hoặc không đúng cấu trúc', 'error'); return; }
-      
-      let count = 0;
-      for(let i=1; i<rows.length; i++) {
-        const r = rows[i]; if(!r[0] && !r[1] && !r[5]) continue; // bỏ dòng trống
+      let added = 0;
+      rows.slice(1).forEach(r => {
+        if(!r[0]&&!r[1]) return;
+        // FIX: Parse giá an toàn khi import
+        const importedPrice = parsePrice(r[9]);
         data.push({
-          id: nextId++, device: String(r[1]||'').trim(), model: String(r[2]||'').trim(), brand: String(r[3]||'').trim(), origin: String(r[4]||'').trim(), spec: String(r[5]||'').trim(), supplier: String(r[6]||'').trim(), cat: String(r[7]||'Điện'), project: String(r[8]||'').trim(),
-          price: parseFloat(r[9])||0, qty: parseInt(r[10])||1, vat: parseFloat(r[11])||0, date: r[12] ? parseDate(r[12]) : today, expiry: r[13] ? parseDate(r[13]) : '', status: String(r[14]||'Mới').trim(), note: String(r[15]||'').trim()
+          id:nextId++,
+          device: String(r[1]||''),
+          model: String(r[2]||''),
+          brand: String(r[3]||''),
+          origin: String(r[4]||''),
+          spec: String(r[5]||''),
+          supplier: String(r[6]||''),
+          cat: String(r[7]||'Khác'),
+          project: String(r[8]||''),
+          price: isNaN(importedPrice) ? 0 : importedPrice,
+          qty: parseInt(r[10])||1,
+          vat: parseFloat(r[11])||10,
+          date: String(r[15]||today),
+          expiry: String(r[16]||''),
+          status: String(r[14]||'Mới'),
+          note: String(r[17]||'')
         });
-        count++;
-      }
-      closeImport(); refresh(); showToast(`Đã nhập thành công ${count} mục báo giá!`, 'success');
-    } catch(err) { console.error(err); showToast('Có lỗi xảy ra khi đọc file!', 'error'); }
+        added++;
+      });
+      closeImport();
+      refresh();
+      showToast(`Đã nhập ${added} mục từ file!`, 'success');
+    } catch(err) {
+      showToast('Lỗi đọc file. Vui lòng kiểm tra định dạng.', 'error');
+    }
   };
-  rdr.readAsBinaryString(f);
-  document.getElementById('fileInput').value = '';
+  reader.readAsBinaryString(file);
+  e.target.value = '';
 }
 
 function downloadTemplate() {
-  const hdr = ['STT','Thiết bị *','Model *','Thương hiệu *','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp *','Danh mục','Dự án','Đơn giá (VNĐ) *','Số lượng','VAT (%)','(Tự tính)','(Tự tính)','Trạng thái','Ngày báo giá','Hết hạn','Ghi chú'];
+  const hdr = ['STT','Thiết bị','Model','Thương hiệu','Xuất xứ','Thông số kỹ thuật','Nhà cung cấp','Danh mục','Dự án','Đơn giá (VNĐ)','Số lượng','VAT (%)','(Tự tính)','(Tự tính)','Trạng thái','Ngày báo giá','Hết hạn','Ghi chú'];
   const sample = [1,'Tên thiết bị','Model123','Thương hiệu','Mỹ','Thông số kỹ thuật...','Tên NCC','Điện','Tên dự án',10000000,2,10,'','','Mới','2026-05-25','2026-08-25','Ghi chú...'];
-  const wb = XLSX.book_new();
+  const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([hdr,sample]);
+  ws['!cols'] = hdr.map((_,i)=>({wch:[5,20,14,12,8,40,20,10,18,14,6,6,10,10,10,12,10,30][i]||12}));
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
-  XLSX.writeFile(wb, 'Template_Bao_Gia.xlsx');
+  XLSX.writeFile(wb, 'template-bao-gia.xlsx');
 }
 
-// ── Helpers ──
-function fmt(n) { return String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
-function fmtM(n) { return ( (n||0) / 1000000 ).toFixed(1); }
-function statusBadge(s) {
-  const cls = { 'Đã duyệt':'success', 'Chờ duyệt':'warning', 'Hết hạn':'danger', 'Mới':'info' };
-  return `<span class="badge badge-${cls[s]||'gray'}">${s}</span>`;
-}
-function parseDate(v) {
-  if(!v) return '';
-  if(v instanceof Date) return v.toISOString().split('T')[0];
-  if(typeof v === 'number') return new Date((v - 25569) * 86400 * 1000).toISOString().split('T')[0];
-  return String(v).trim();
-}
-function dlBlob(content, name, mime) {
-  const blob = new Blob(["\ufeff" + content], { type: mime });
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+function triggerDownload(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // ── Toast ──
@@ -1226,7 +1330,14 @@ function showToast(msg, type='success') {
   document.getElementById('toastMsg').textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 4000);
+}
+
+// ── Refresh all ──
+function refresh() {
+  populateFilters();
+  renderMetrics();
+  renderTable();
 }
 
 // ── Drag-drop import zone ──
@@ -1236,8 +1347,31 @@ dz.addEventListener('dragleave', ()=>dz.style.borderColor='');
 dz.addEventListener('drop', e=>{
   e.preventDefault(); dz.style.borderColor='';
   const f = e.dataTransfer.files[0];
-  if(f){ const inp=document.getElementById('fileInput'); inp.files=e.dataTransfer.files; handleImport({target:{files:e.dataTransfer.files}}); }
+  if(f) handleImport({target:{files:e.dataTransfer.files}});
 });
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') {
+    closeModal();
+    closeDetail();
+    closeImport();
+  }
+  // Ctrl/Cmd + N = thêm mới
+  if((e.ctrlKey||e.metaKey) && e.key==='n') {
+    e.preventDefault();
+    openModal();
+  }
+});
+
+// ── Responsive ──
+window.addEventListener('resize', ()=>{
+  document.getElementById('menuBtn').style.display = window.innerWidth<=900?'flex':'none';
+});
+if(window.innerWidth<=900) document.getElementById('menuBtn').style.display='flex';
+
+// ── Init ──
+refresh();
 </script>
 </body>
 </html>
