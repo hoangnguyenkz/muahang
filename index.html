@@ -918,14 +918,16 @@ tbody tr.best-row td { background: rgba(15,169,104,0.03); }
       <div class="setup-step">
         <div class="step-num">3</div>
         <div class="step-body">
-          <div class="step-title">Dán URL vào đây</div>
+          <div class="step-title">Dán URL vào đây và test</div>
           <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:8px">
-          <div class="form-hint" style="margin-top:5px">URL sẽ được lưu trong trình duyệt này</div>
+          <div class="form-hint" style="margin-top:5px">⚠️ Bắt buộc chọn <strong>Execute as: Me</strong> và <strong>Who has access: Anyone</strong> khi Deploy</div>
+          <div class="form-hint" style="margin-top:3px">URL được lưu trong trình duyệt — bấm <strong>Test kết nối</strong> để kiểm tra trước</div>
         </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeSetupModal()">Đóng</button>
+      <button class="btn" onclick="testConnection()" id="testConnBtn"><i class="fas fa-wifi"></i> Test kết nối</button>
       <button class="btn btn-primary" onclick="saveScriptUrl()"><i class="fas fa-plug"></i> Kết nối & Tải dữ liệu</button>
     </div>
   </div>
@@ -1857,70 +1859,109 @@ let SCRIPT_URL = localStorage.getItem('pricetrack_script_url') || '';
 let syncTimer = null;
 let lastSyncOk = false;
 
-const APPS_SCRIPT_CODE = `// === PriceTrack Pro — Google Apps Script Backend ===
-// Sheet ID gắn với file này (lấy từ URL Google Sheets của bạn)
-const SHEET_ID = '${SHEET_ID}';
+const APPS_SCRIPT_CODE = `// ═══════════════════════════════════════════════════
+// PriceTrack Pro — Google Apps Script Backend
+// Bước 1: Dán toàn bộ code này vào Apps Script
+// Bước 2: Deploy → New deployment → Web app
+//         Execute as: Me | Who has access: Anyone
+// ═══════════════════════════════════════════════════
+const SHEET_ID = '1fg2Cgn0hd4BOtfJaZawVZLEX3G5msymAn3xHydJs_Yg';
 
+const DATA_HEADERS = ['id','device','model','brand','origin','spec','supplier','cat','project','price','sellPrice','qty','vat','date','expiry','status','note'];
+const USER_HEADERS = ['username','password','name','role','display','customPerms'];
+const ROLE_HEADERS = ['role','seeCost','seeSell','seeProfit','canAdd','canEdit','canDelete','canImport'];
+
+// ── ĐỌC dữ liệu (GET request) ──────────────────────
 function doGet(e) {
-  const action = (e.parameter && e.parameter.action) || 'getData';
+  const action = (e && e.parameter && e.parameter.action) || 'getData';
   const ss = SpreadsheetApp.openById(SHEET_ID);
   try {
     if (action === 'getData') {
-      const sh = getOrCreate(ss,'Data',['id','device','model','brand','origin','spec','supplier','cat','project','price','sellPrice','qty','vat','date','expiry','status','note']);
-      const rows = sh.getLastRow()>1 ? sh.getRange(2,1,sh.getLastRow()-1,17).getValues() : [];
-      return json({ok:true, rows});
+      const sh = getOrCreate(ss, 'Data', DATA_HEADERS);
+      const rows = sh.getLastRow() > 1
+        ? sh.getRange(2, 1, sh.getLastRow() - 1, DATA_HEADERS.length).getValues() : [];
+      return json({ ok: true, rows: rows });
     }
     if (action === 'getUsers') {
-      const sh = getOrCreate(ss,'Users',['username','password','name','role','display','customPerms']);
-      const rows = sh.getLastRow()>1 ? sh.getRange(2,1,sh.getLastRow()-1,6).getValues() : [];
-      return json({ok:true, rows});
+      const sh = getOrCreate(ss, 'Users', USER_HEADERS);
+      const rows = sh.getLastRow() > 1
+        ? sh.getRange(2, 1, sh.getLastRow() - 1, USER_HEADERS.length).getValues() : [];
+      return json({ ok: true, rows: rows });
     }
     if (action === 'getRoles') {
-      const sh = getOrCreate(ss,'Roles',['role','seeCost','seeSell','seeProfit','canAdd','canEdit','canDelete','canImport']);
-      const rows = sh.getLastRow()>1 ? sh.getRange(2,1,sh.getLastRow()-1,8).getValues() : [];
-      return json({ok:true, rows});
+      const sh = getOrCreate(ss, 'Roles', ROLE_HEADERS);
+      const rows = sh.getLastRow() > 1
+        ? sh.getRange(2, 1, sh.getLastRow() - 1, ROLE_HEADERS.length).getValues() : [];
+      return json({ ok: true, rows: rows });
     }
-    return json({ok:false, error:'Unknown action'});
-  } catch(err){ return json({ok:false, error:err.message}); }
+    if (action === 'test') {
+      return json({ ok: true, msg: 'Ket noi thanh cong!' });
+    }
+    return json({ ok: false, error: 'Unknown action: ' + action });
+  } catch (err) {
+    return json({ ok: false, error: err.message });
+  }
 }
 
+// ── GHI dữ liệu (POST request) ─────────────────────
+// HTML gửi body là JSON string, KHÔNG có Content-Type header
+// → browser coi là simple request → không CORS preflight
 function doPost(e) {
-  const p = JSON.parse(e.postData.contents);
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  try {
+    var raw = e.postData ? e.postData.contents : '';
+    if (!raw) return json({ ok: false, error: 'Empty body' });
+    var payload = JSON.parse(raw);
+    return handleSave(payload);
+  } catch (err) {
+    return json({ ok: false, error: 'doPost error: ' + err.message });
+  }
+}
+
+function handleSave(p) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
   try {
     if (p.action === 'saveData') {
-      const headers = ['id','device','model','brand','origin','spec','supplier','cat','project','price','sellPrice','qty','vat','date','expiry','status','note'];
-      const sh = getOrCreate(ss,'Data',headers);
-      sh.clearContents(); sh.getRange(1,1,1,headers.length).setValues([headers]);
-      if(p.rows && p.rows.length>0) sh.getRange(2,1,p.rows.length,headers.length).setValues(p.rows);
-      return json({ok:true});
+      writeSheet(ss, 'Data', DATA_HEADERS, p.rows || []);
+      return json({ ok: true });
     }
     if (p.action === 'saveUsers') {
-      const headers = ['username','password','name','role','display','customPerms'];
-      const sh = getOrCreate(ss,'Users',headers);
-      sh.clearContents(); sh.getRange(1,1,1,headers.length).setValues([headers]);
-      if(p.rows && p.rows.length>0) sh.getRange(2,1,p.rows.length,headers.length).setValues(p.rows);
-      return json({ok:true});
+      writeSheet(ss, 'Users', USER_HEADERS, p.rows || []);
+      return json({ ok: true });
     }
     if (p.action === 'saveRoles') {
-      const headers = ['role','seeCost','seeSell','seeProfit','canAdd','canEdit','canDelete','canImport'];
-      const sh = getOrCreate(ss,'Roles',headers);
-      sh.clearContents(); sh.getRange(1,1,1,headers.length).setValues([headers]);
-      if(p.rows && p.rows.length>0) sh.getRange(2,1,p.rows.length,headers.length).setValues(p.rows);
-      return json({ok:true});
+      writeSheet(ss, 'Roles', ROLE_HEADERS, p.rows || []);
+      return json({ ok: true });
     }
-    return json({ok:false, error:'Unknown action'});
-  } catch(err){ return json({ok:false, error:err.message}); }
+    return json({ ok: false, error: 'Unknown action: ' + p.action });
+  } catch (err) {
+    return json({ ok: false, error: 'handleSave error: ' + err.message });
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────
+function writeSheet(ss, name, headers, rows) {
+  var sh = getOrCreate(ss, name, headers);
+  sh.clearContents();
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+  if (rows.length > 0) {
+    sh.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
 }
 
 function getOrCreate(ss, name, headers) {
-  let sh = ss.getSheetByName(name);
-  if (!sh) { sh = ss.insertSheet(name); sh.getRange(1,1,1,headers.length).setValues([headers]); }
+  var sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+  }
   return sh;
 }
+
 function json(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}`;
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}`
 
 function updateSyncBar(state, text) {
   const bar = document.getElementById('syncBar');
@@ -1943,31 +1984,53 @@ function scheduleSync() {
   updateSyncBar('saving', 'Chuẩn bị lưu...');
 }
 
+// ── Ghi dữ liệu lên Apps Script ──
+// KHÔNG đặt Content-Type → browser gửi text/plain → "simple request"
+// → KHÔNG kích hoạt CORS preflight → Apps Script nhận body đầy đủ
+async function sheetsPOST(payload) {
+  const body = JSON.stringify(payload);
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: body
+    // Chủ ý KHÔNG có Content-Type header
+  });
+  const txt = await res.text();
+  const parsed = tryParseJSON(txt);
+  if (parsed && parsed.ok === false) throw new Error(parsed.error || 'Apps Script trả lỗi');
+  return parsed || {ok: true};
+}
+
+// ── Đọc dữ liệu từ Apps Script ──
+async function sheetsGET(action) {
+  const res = await fetch(SCRIPT_URL + '?action=' + action, {redirect: 'follow'});
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const txt = await res.text();
+  const parsed = tryParseJSON(txt);
+  if (!parsed) throw new Error('Apps Script phản hồi không hợp lệ — kiểm tra URL và quyền Deploy');
+  return parsed;
+}
+
 async function syncToSheets() {
   if (!SCRIPT_URL) return;
   updateSyncBar('saving');
   try {
-    // Save data rows
     const dataRows = data.map(r => [r.id,r.device,r.model,r.brand,r.origin,r.spec,r.supplier,r.cat,r.project,r.price,r.sellPrice||0,r.qty,r.vat||0,r.date,r.expiry||'',r.status,r.note||'']);
-    const r1 = await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'saveData', rows:dataRows})});
-    const d1 = await r1.json();
-    if (!d1.ok) throw new Error(d1.error);
+    await sheetsPOST({action:'saveData', rows:dataRows});
 
-    // Save users
-    const usersRows = Object.entries(USERS).map(([u,v]) => [u, v.password, v.name, v.role, v.display, v.customPerms ? JSON.stringify(v.customPerms) : '']);
-    const r2 = await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'saveUsers', rows:usersRows})});
-    const d2 = await r2.json();
+    const usersRows = Object.entries(USERS).map(([u,v]) => [u, v.password, v.name, v.role, v.display||'', v.customPerms ? JSON.stringify(v.customPerms) : '']);
+    await sheetsPOST({action:'saveUsers', rows:usersRows});
 
-    // Save roles
     const rolesRows = Object.entries(ROLE_PERMS).map(([role,p]) => [role, p.seeCost?1:0, p.seeSell?1:0, p.seeProfit?1:0, p.canAdd?1:0, p.canEdit?1:0, p.canDelete?1:0, p.canImport?1:0]);
-    const r3 = await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'saveRoles', rows:rolesRows})});
+    await sheetsPOST({action:'saveRoles', rows:rolesRows});
 
     lastSyncOk = true;
     updateSyncBar('ok');
     setTimeout(()=>updateSyncBar('idle'), 4000);
   } catch(err) {
     lastSyncOk = false;
-    updateSyncBar('error', 'Lỗi: ' + err.message.slice(0,30));
+    updateSyncBar('error', 'Lỗi: ' + err.message.slice(0,35));
+    console.error('Sync error:', err);
   }
 }
 
@@ -1976,36 +2039,35 @@ async function loadFromSheets() {
   updateSyncBar('saving', 'Đang tải từ Sheets...');
   try {
     // Load data
-    const r1 = await fetch(SCRIPT_URL + '?action=getData');
-    const d1 = await r1.json();
+    const d1 = await sheetsGET('getData');
     if (d1.ok && d1.rows && d1.rows.length > 0) {
       data = d1.rows.map(r => ({
-        id: parseInt(r[0])||nextId++, device:String(r[1]||''), model:String(r[2]||''), brand:String(r[3]||''),
-        origin:String(r[4]||''), spec:String(r[5]||''), supplier:String(r[6]||''), cat:String(r[7]||'Khác'),
-        project:String(r[8]||''), price:parseFloat(r[9])||0, sellPrice:parseFloat(r[10])||0,
+        id: parseInt(r[0])||nextId++, device:String(r[1]||''), model:String(r[2]||''),
+        brand:String(r[3]||''), origin:String(r[4]||''), spec:String(r[5]||''),
+        supplier:String(r[6]||''), cat:String(r[7]||'Khác'), project:String(r[8]||''),
+        price:parseFloat(r[9])||0, sellPrice:parseFloat(r[10])||0,
         qty:parseInt(r[11])||1, vat:parseFloat(r[12])||10, date:String(r[13]||today),
         expiry:String(r[14]||''), status:String(r[15]||'Mới'), note:String(r[16]||'')
       }));
-      nextId = Math.max(...data.map(r=>r.id), nextId) + 1;
+      nextId = Math.max(...data.map(r=>r.id), 12) + 1;
     }
 
     // Load users
-    const r2 = await fetch(SCRIPT_URL + '?action=getUsers');
-    const d2 = await r2.json();
+    const d2 = await sheetsGET('getUsers');
     if (d2.ok && d2.rows && d2.rows.length > 0) {
-      USERS = {};
+      const newUsers = {};
       d2.rows.forEach(r => {
         if (!r[0]) return;
-        USERS[String(r[0])] = {
-          password: String(r[1]||''), name: String(r[2]||''), role: String(r[3]||'viewer'),
-          display: String(r[4]||''), customPerms: r[5] ? tryParseJSON(r[5]) : null
+        newUsers[String(r[0])] = {
+          password:String(r[1]||''), name:String(r[2]||''), role:String(r[3]||'viewer'),
+          display:String(r[4]||''), customPerms: r[5] ? tryParseJSON(r[5]) : null
         };
       });
+      if (Object.keys(newUsers).length > 0) USERS = newUsers;
     }
 
     // Load roles
-    const r3 = await fetch(SCRIPT_URL + '?action=getRoles');
-    const d3 = await r3.json();
+    const d3 = await sheetsGET('getRoles');
     if (d3.ok && d3.rows && d3.rows.length > 0) {
       d3.rows.forEach(r => {
         if (!r[0]) return;
@@ -2016,13 +2078,14 @@ async function loadFromSheets() {
       });
     }
 
-    refresh();
+    if (currentUser) refresh();
     updateSyncBar('ok', 'Đã tải dữ liệu từ Sheets ✓');
     setTimeout(()=>updateSyncBar('idle'), 4000);
     showToast('Đã tải dữ liệu từ Google Sheets!', 'success');
   } catch(err) {
-    updateSyncBar('error', 'Lỗi tải: ' + err.message.slice(0,25));
-    showToast('Lỗi kết nối Sheets: ' + err.message, 'error');
+    updateSyncBar('error', 'Lỗi tải: ' + err.message.slice(0,30));
+    showToast('❌ ' + err.message, 'error');
+    console.error('Load error:', err);
   }
 }
 
@@ -2053,6 +2116,30 @@ function saveScriptUrl() {
   localStorage.setItem('pricetrack_script_url', url);
   closeSetupModal();
   loadFromSheets();
+}
+
+async function testConnection() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    showToast('Vui lòng nhập URL Apps Script trước!', 'error'); return;
+  }
+  const btn = document.getElementById('testConnBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang test...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(url + '?action=test', {redirect:'follow'});
+    const txt = await res.text();
+    const data = tryParseJSON(txt);
+    if (data && data.ok) {
+      showToast('✅ Kết nối thành công! Apps Script hoạt động tốt.', 'success');
+    } else {
+      showToast('⚠️ Server phản hồi nhưng có lỗi: ' + (data&&data.error||txt.slice(0,60)), 'error');
+    }
+  } catch(err) {
+    showToast('❌ Không kết nối được: ' + err.message + ' — Kiểm tra lại URL và quyền Deploy', 'error');
+  }
+  btn.innerHTML = '<i class="fas fa-wifi"></i> Test kết nối';
+  btn.disabled = false;
 }
 
 function copyAppsScript() {
